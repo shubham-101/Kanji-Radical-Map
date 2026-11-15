@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kanji Radical Map &mdash; TopoKanji Viewer</title>
+<meta name="description" content="Topologically ordered kanji learning lists with component/radical relationships.">
+<script>
+  /* Set the theme before first paint to avoid a flash of the wrong theme. */
+  (function () {
+    try {
+      var t = localStorage.getItem('kanji-radical-map.theme');
+      if (t !== 'light' && t !== 'dark') {
+        t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) { /* ignore */ }
+  })();
+</script>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #272c38;
+    --text: #e7e9ee;
+    --muted: #9aa2b4;
+    --accent: #6ea8fe;
+    --accent-dim: #2a3a5c;
+    --accent-text: #dce8ff;
+    --learned: #3fb68b;
+    --learned-dim: #1d3a31;
+    --ready: #2f9e77;
+    --radius: 10px;
+    --font-cjk: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, "Noto Sans CJK JP",
+                "Microsoft YaHei", sans-serif;
+  }
+  [data-theme="light"] {
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --panel-2: #eceff4;
+    --border: #d3d9e2;
+    --text: #171c26;
+    --muted: #55607a;
+    --accent: #2563eb;
+    --accent-dim: #dbe7ff;
+    --accent-text: #1e3a8a;
+    --learned: #0f8a5f;
+    --learned-dim: #d3f2e5;
+    --ready: #0f8a5f;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", var(--font-cjk);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  .skip-link {
+    position: absolute; left: 12px; top: -60px; z-index: 100;
+    background: var(--accent); color: #fff; padding: 9px 14px; border-radius: 8px;
+    text-decoration: none; transition: top .15s ease;
+  }
+  .skip-link:focus { top: 12px; }
+
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  header {
+    padding: 14px 20px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex: 0 0 auto;
+  }
+  .title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 19px; margin: 0; letter-spacing: .2px; font-weight: 650; }
+  h1 .jp { color: var(--accent); font-weight: 700; }
+  .sub { color: var(--muted); font-size: 12.5px; }
+
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 6px 13px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13.5px;
+    display: inline-flex;
+    gap: 7px;
+    align-items: center;
+  }
+  .tab:hover { border-color: var(--accent-dim); }
+  .tab[aria-selected="true"] { background: var(--accent-dim); border-color: var(--accent); }
+  .tab-count { color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .tab[aria-selected="true"] .tab-count { color: var(--accent-text); }
+
+  input[type="search"], select {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 11px;
+    font: inherit;
+    font-size: 13.5px;
+  }
+  input[type="search"] { min-width: 230px; }
+  .spacer { flex: 1; }
+  .link-btn, .icon-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 7px 11px; cursor: pointer; font: inherit; font-size: 12.5px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .link-btn:hover, .icon-btn:hover { color: var(--text); border-color: var(--accent-dim); }
+  .icon-btn { padding: 7px 9px; }
+
+  .progress {
+    margin-top: 12px;
+    height: 7px;
+    background: var(--panel-2);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress > i {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, var(--ready), var(--learned));
+    width: 0;
+    transition: width .2s ease;
+  }
+  .progress-label { color: var(--muted); font-size: 12px; margin-top: 5px; font-variant-numeric: tabular-nums; }
+
+  main { flex: 1 1 auto; min-height: 0; }
+
+  #gridWrap { overflow: auto; height: 100%; padding: 16px 20px 48px; scroll-behavior: smooth; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 12.5px; margin-bottom: 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border); display: inline-block; }
+  .swatch.learned { background: var(--learned-dim); border-color: var(--learned); }
+  .swatch.ready { background: transparent; border-color: var(--ready); }
+  .swatch.blocked { background: transparent; border-color: var(--border); }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 7px;
+  }
+  .tile {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: var(--panel);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-cjk);
+    font-size: 25px;
+    line-height: 1;
+    transition: transform .06s ease, border-color .12s ease, background .12s ease;
+  }
+  .tile:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .tile .idx {
+    position: absolute;
+    top: 4px; left: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 9.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .tile.ready { border-color: var(--ready); }
+  .tile.ready:hover { border-color: var(--learned); }
+  .tile.learned { background: var(--learned-dim); border-color: var(--learned); }
+  .tile.learned .idx { color: var(--learned); }
+  .tile.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+    background: var(--accent-dim);
+  }
+  .no-results { color: var(--muted); padding: 30px 6px; }
+
+  /* ---------- modal popup ---------- */
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal[hidden] { display: none; }
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 10, 14, .55);
+    backdrop-filter: blur(2px);
+  }
+  [data-theme="light"] .modal-backdrop { background: rgba(15, 23, 40, .4); }
+
+  .modal-panel {
+    position: relative;
+    width: min(720px, 100%);
+    max-height: min(88vh, 100%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .45);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalIn .18s ease;
+  }
+  .modal-panel:focus { outline: none; }
+  @keyframes modalIn {
+    from { transform: translateY(14px) scale(.985); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+
+  .d-bar {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .d-bar-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .d-body { flex: 1 1 auto; overflow: auto; padding: 18px 18px 28px; }
+  .empty { color: var(--muted); text-align: center; margin-top: 56px; padding: 0 12px; }
+
+  .d-head { display: flex; align-items: center; gap: 16px; }
+  .d-char {
+    font-family: var(--font-cjk);
+    font-size: 84px;
+    line-height: 1;
+    width: 118px; height: 118px;
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .d-meta { font-size: 14px; color: var(--muted); }
+  .d-meta b { color: var(--text); font-weight: 600; }
+  .badge {
+    display: inline-block; font-size: 11.5px; padding: 2px 9px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--muted); margin: 0 6px 6px 0;
+  }
+  .badge.on { color: var(--learned); border-color: var(--learned); }
+
+  .d-section { margin-top: 22px; }
+  .d-section h2 {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin: 0 0 9px; font-weight: 600;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    min-width: 38px;
+    padding: 6px 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-cjk);
+    font-size: 19px;
+    line-height: 1;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.learned { background: var(--learned-dim); border-color: var(--learned); }
+  .chip.missing { opacity: .55; }
+  .chip.more { font-size: 12px; color: var(--muted); border-style: dashed; font-family: inherit; }
+
+  table.positions { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.positions td { padding: 4px; border-bottom: 1px solid var(--border); }
+  table.positions tr.current td { color: var(--accent); font-weight: 600; }
+  table.positions td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .d-actions { display: flex; gap: 8px; margin-top: 24px; flex-wrap: wrap; }
+  .btn {
+    flex: 1 1 auto;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent-text);
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13.5px;
+  }
+  .btn:hover { filter: brightness(1.12); }
+  .btn.ghost { background: none; border-color: var(--border); color: var(--muted); }
+  .btn.ghost:hover { color: var(--text); border-color: var(--accent-dim); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 16px; line-height: 1.7; }
+  .dict-foot {
+    color: var(--muted); font-size: 11px; line-height: 1.6;
+    border-top: 1px solid var(--border); padding-top: 12px; margin-top: 22px;
+  }
+  .dict-foot a { color: inherit; }
+
+  .meaning { font-size: 19px; line-height: 1.4; margin: 2px 0 10px; }
+  .read-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
+  .read-row .lbl { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .read-row .val { font-size: 14.5px; }
+
+  .words { list-style: none; padding: 0; margin: 0; }
+  .word { padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .word:last-child { border-bottom: none; }
+  .word .w { font-family: var(--font-cjk); font-size: 18px; }
+  .word .r { color: var(--muted); font-size: 13px; margin-left: 8px; }
+  .word .g { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+
+  .examples { display: flex; flex-direction: column; gap: 12px; }
+  .example { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .example-jpn { font-family: var(--font-cjk); font-size: 17px; line-height: 1.7; }
+  .example-eng { color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.5; }
+
+  kbd {
+    background: var(--panel-2); border: 1px solid var(--border); border-bottom-width: 2px;
+    border-radius: 4px; padding: 0 5px; font-size: 11px; font-family: inherit;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: .001ms !important;
+      animation-duration: .001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .modal-panel { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#gridWrap">Skip to kanji grid</a>
+  <noscript>
+    <p style="padding:16px 20px">This viewer needs JavaScript enabled to display the kanji lists.</p>
+  </noscript>
+
+  <header id="appHeader">
+    <div class="title-row">
+      <h1><span class="jp">漢字</span> Kanji Radical Map</h1>
+      <span class="sub">Topologically ordered learning lists &middot; <span id="totalChars"></span> characters</span>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="themeToggle" aria-pressed="false" aria-label="Switch to light theme" title="Toggle theme">
+        <span aria-hidden="true" id="themeIcon">☾</span>
+      </button>
+    </div>
+    <div class="controls">
+      <nav class="tabs" id="listTabs" role="tablist" aria-label="Frequency list"></nav>
+      <div class="spacer"></div>
+      <label class="sr-only" for="search">Search by kanji or component</label>
+      <input type="search" id="search" placeholder="Search kanji or component&hellip;" autocomplete="off">
+      <label class="sr-only" for="filter">Filter kanji</label>
+      <select id="filter">
+        <option value="all">All</option>
+        <option value="unlearned">Unlearned</option>
+        <option value="learned">Learned</option>
+        <option value="ready">Ready to learn</option>
+      </select>
+      <button class="link-btn" id="resetLearned" title="Clear all learned marks">Reset progress</button>
+    </div>
+    <div class="progress"><i id="progressBar"></i></div>
+    <div class="progress-label" id="progressLabel"></div>
+  </header>
+
+  <main>
+    <section id="gridWrap" aria-label="Kanji lists">
+      <div class="legend">
+        <span><i class="swatch learned" aria-hidden="true"></i> learned</span>
+        <span><i class="swatch ready" aria-hidden="true"></i> ready (all components learned)</span>
+        <span><i class="swatch blocked" aria-hidden="true"></i> has unlearned components</span>
+      </div>
+      <div id="grid" role="listbox" aria-label="Kanji in learning order"></div>
+    </section>
+  </main>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-panel" id="modalPanel" tabindex="-1">
+      <div class="d-bar">
+        <span class="d-bar-title" id="modalTitle">Kanji details</span>
+        <button class="icon-btn" id="modalClose" aria-label="Close popup" title="Close (Esc)">
+          <span aria-hidden="true">✕</span>
+        </button>
+      </div>
+      <div class="d-body" id="detailBody" aria-live="polite"></div>
+    </div>
+  </div>
+
+<script>
+'use strict';
+
+var DATA = /*__DATA__*/null;
+
+var LISTS = DATA.lists;
+var LIST_NAMES = Object.keys(LISTS);
+var DEPS = DATA.deps;       // char -> [component, ...] ("0" = atomic)
+var USED_IN = DATA.usedIn;   // char -> [kanji containing it, ...]
+var KANJI = DATA.kanji;      // char -> {s: strokes, c: isCommon}
+var DICT = (DATA.dict && DATA.dict.kanji) || {}; // char -> {m,on,kun,...}
+
+var STORAGE_KEY = 'kanji-radical-map.learned';
+var THEME_KEY = 'kanji-radical-map.theme';
+
+var state = {
+  // "aozora" is the recommended starting list (see README)
+  list: LIST_NAMES.indexOf('aozora') >= 0 ? 'aozora' : LIST_NAMES[0],
+  filter: 'all',
+  search: '',
+  selected: null
+};
+
+var learned = loadLearned();
+var tileByChar = {};
+var lastFocused = null;
+
+function loadLearned() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveLearned() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(learned))); } catch (e) {}
+}
+
+function $(sel, el) { return (el || document).querySelector(sel); }
+
+function componentsOf(ch) {
+  return (DEPS[ch] || []).filter(function (c) { return c !== '0'; });
+}
+
+function isReady(ch) {
+  var comps = componentsOf(ch);
+  return comps.length > 0 && comps.every(function (c) { return learned.has(c); });
+}
+
+function positionIn(listName, ch) {
+  var i = LISTS[listName].indexOf(ch);
+  return i < 0 ? null : i + 1;
+}
+
+function learnedIn(name) {
+  var n = 0;
+  for (var i = 0; i < LISTS[name].length; i++) {
+    if (learned.has(LISTS[name][i])) n++;
+  }
+  return n;
+}
+
+function isModalOpen() {
+  return !$('#modal').hidden;
+}
+
+/* ---------- theme ---------- */
+
+function currentTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  var light = theme === 'light';
+  $('#themeIcon').textContent = light ? '☀' : '☾';
+  $('#themeToggle').setAttribute('aria-pressed', String(light));
+  $('#themeToggle').setAttribute('aria-label', light ? 'Switch to dark theme' : 'Switch to light theme');
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+}
+
+/* ---------- rendering ---------- */
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Meaning, readings, mnemonic, related words and example sentences from the dictionary. */
+function renderDict(ch) {
+  var d = DICT[ch];
+  if (!d) {
+    return '<div class="d-section"><h2>Dictionary</h2><div class="d-meta">Not loaded. ' +
+      'Run <code>python build-dictionary.py</code> and regenerate the viewer.</div></div>';
+  }
+
+  var html = '';
+
+  var meanings = (d.m || []).slice(0, 8).join(', ');
+  var mnemonic = d.heisig_en || d.key;
+  var altKeys = (d.keys || []).filter(function (k) { return k !== mnemonic; }).slice(0, 4);
+  html += '<div class="d-section"><h2>Meaning</h2>' +
+    '<p class="meaning">' + escapeHtml(meanings || '—') + '</p>' +
+    (mnemonic
+      ? '<div class="d-meta">Mnemonic: <b>' + escapeHtml(mnemonic) + '</b>' +
+        (altKeys.length ? ' (also: ' + escapeHtml(altKeys.join(', ')) + ')' : '') + '</div>'
+      : '') +
+    '<div class="read-row" style="margin-top:12px">' +
+      '<div><span class="lbl">Onyomi</span><span class="val">' + escapeHtml((d.on || []).join('、') || '—') + '</span></div>' +
+      '<div><span class="lbl">Kunyomi</span><span class="val">' + escapeHtml((d.kun || []).join('、') || '—') + '</span></div>' +
+    '</div></div>';
+
+  if (d.w && d.w.length) {
+    html += '<div class="d-section"><h2>Related words</h2><ul class="words">' +
+      d.w.map(function (row) {
+        return '<li class="word"><span class="w">' + escapeHtml(row[0]) + '</span>' +
+          '<span class="r">' + escapeHtml(row[1]) + '</span>' +
+          '<div class="g">' + escapeHtml(row[2]) + '</div></li>';
+      }).join('') + '</ul></div>';
+  }
+
+  if (d.x && d.x.length) {
+    html += '<div class="d-section"><h2>Example sentences</h2><div class="examples">' +
+      d.x.map(function (s) {
+        return '<div class="example"><div class="example-jpn">' + escapeHtml(s.jpn) + '</div>' +
+          '<div class="example-eng">' + escapeHtml(s.eng) + '</div></div>';
+      }).join('') + '</div></div>';
+  }
+
+  html += '<div class="dict-foot">Meanings &amp; readings: KANJIDIC2 / JMdict &middot; ' +
+    '<a href="https://github.com/scriptin/jmdict-simplified" target="_blank" rel="noopener">EDRDG / jmdict-simplified</a> (CC BY-SA 4.0)<br>' +
+    'Example sentences: <a href="https://tatoeba.org" target="_blank" rel="noopener">Tatoeba</a> (CC BY-SA 2.0 FR)<br>' +
+    'Mnemonic keywords: <a href="https://github.com/scriptin/kanji-keys" target="_blank" rel="noopener">kanji-keys</a></div>';
+
+  return html;
+}
+
+function renderTabs() {
+  var nav = $('#listTabs');
+  nav.innerHTML = '';
+  LIST_NAMES.forEach(function (name) {
+    var b = document.createElement('button');
+    b.className = 'tab';
+    b.setAttribute('role', 'tab');
+    b.id = 'tab-' + name;
+    b.setAttribute('aria-selected', String(name === state.list));
+    b.setAttribute('tabindex', name === state.list ? '0' : '-1');
+    b.innerHTML = '<span class="tab-name">' + name + '</span>' +
+      '<span class="tab-count">' + learnedIn(name) + '/' + LISTS[name].length + '</span>';
+    b.addEventListener('click', function () {
+      state.list = name;
+      state.selected = null;
+      renderAll();
+      focusFirstTile();
+    });
+    b.addEventListener('keydown', function (e) { onTabKeydown(e, name); });
+    nav.appendChild(b);
+  });
+}
+
+function onTabKeydown(e, name) {
+  var i = LIST_NAMES.indexOf(name);
+  var next = null;
+  if (e.key === 'ArrowRight') next = LIST_NAMES[(i + 1) % LIST_NAMES.length];
+  else if (e.key === 'ArrowLeft') next = LIST_NAMES[(i - 1 + LIST_NAMES.length) % LIST_NAMES.length];
+  else if (e.key === 'Home') next = LIST_NAMES[0];
+  else if (e.key === 'End') next = LIST_NAMES[LIST_NAMES.length - 1];
+  if (next === null) return;
+  e.preventDefault();
+  state.list = next;
+  state.selected = null;
+  renderAll();
+  var tab = $('#tab-' + next);
+  if (tab) tab.focus();
+}
+
+function renderProgress() {
+  var total = LISTS[state.list].length;
+  var done = learnedIn(state.list);
+  $('#progressBar').style.width = (total ? (done / total) * 100 : 0) + '%';
+  $('#progressLabel').textContent =
+    done + ' / ' + total + ' learned in "' + state.list + '" (' +
+    (total ? (done / total) * 100 : 0).toFixed(1) + '%)';
+}
+
+function filteredChars() {
+  var q = state.search.trim();
+  var out = [];
+  for (var i = 0; i < LISTS[state.list].length; i++) {
+    var ch = LISTS[state.list][i];
+    if (q && !(ch === q || componentsOf(ch).indexOf(q) !== -1)) continue;
+    if (state.filter === 'learned' && !learned.has(ch)) continue;
+    if (state.filter === 'unlearned' && learned.has(ch)) continue;
+    if (state.filter === 'ready' && !isReady(ch)) continue;
+    out.push(ch);
+  }
+  return out;
+}
+
+function buildGrid() {
+  var grid = $('#grid');
+  var chars = filteredChars();
+  var pos = {};
+  for (var i = 0; i < LISTS[state.list].length; i++) pos[LISTS[state.list][i]] = i + 1;
+
+  tileByChar = {};
+  if (!chars.length) {
+    grid.innerHTML = '<div class="no-results">No kanji match.</div>';
+    return;
+  }
+
+  var frag = document.createDocumentFragment();
+  chars.forEach(function (ch) {
+    var t = document.createElement('button');
+    t.className = 'tile';
+    t.setAttribute('role', 'option');
+    t.dataset.char = ch;
+    t.setAttribute('aria-selected', 'false');
+    t.setAttribute('aria-label', ch + ', position ' + pos[ch] +
+      (learned.has(ch) ? ', learned' : '') +
+      (isReady(ch) ? ', ready to learn' : ''));
+    t.innerHTML = '<span class="idx" aria-hidden="true">' + pos[ch] + '</span>' +
+                  '<span class="ch" aria-hidden="true">' + ch + '</span>';
+    t.addEventListener('focus', function () {
+      if (state.selected !== ch) selectChar(ch);
+    });
+    frag.appendChild(t);
+    tileByChar[ch] = t;
+  });
+  grid.innerHTML = '';
+  grid.appendChild(frag);
+  refreshTileStates();
+}
+
+function updateSelectionClasses() {
+  var chars = filteredChars();
+  Object.keys(tileByChar).forEach(function (ch) {
+    var t = tileByChar[ch];
+    var selected = ch === state.selected;
+    t.classList.toggle('selected', selected);
+    t.setAttribute('aria-selected', String(selected));
+    t.tabIndex = selected ? 0 : -1;
+  });
+  if (!state.selected && chars.length && tileByChar[chars[0]]) {
+    tileByChar[chars[0]].tabIndex = 0;
+  }
+}
+
+/* Update learned/ready styling and accessible labels for every visible tile. */
+function refreshTileStates() {
+  Object.keys(tileByChar).forEach(function (ch) {
+    var t = tileByChar[ch];
+    var pos = positionIn(state.list, ch);
+    var isLearned = learned.has(ch);
+    var ready = !isLearned && isReady(ch);
+    t.classList.toggle('learned', isLearned);
+    t.classList.toggle('ready', ready);
+    t.setAttribute('aria-label', ch + ', position ' + pos +
+      (isLearned ? ', learned' : '') + (ready ? ', ready to learn' : ''));
+  });
+}
+
+function focusTile(ch) {
+  var t = tileByChar[ch];
+  if (!t) return;
+  t.focus();
+  t.scrollIntoView({ block: 'nearest' });
+}
+
+/* Select a kanji: update highlight + popup content. Does not open the popup. */
+function selectChar(ch) {
+  if (state.selected === ch) return;
+  state.selected = ch;
+  updateSelectionClasses();
+  renderDetail();
+}
+
+function openModal() {
+  var m = $('#modal');
+  if (!m.hidden) return;
+  lastFocused = document.activeElement;
+  m.hidden = false;
+  document.body.classList.add('modal-open');
+  setInert(true);
+  $('#modalPanel').focus();
+}
+
+function closeModal() {
+  var m = $('#modal');
+  if (m.hidden) return;
+  m.hidden = true;
+  document.body.classList.remove('modal-open');
+  setInert(false);
+  if (lastFocused && document.contains(lastFocused)) {
+    lastFocused.focus();
+  }
+}
+
+function setInert(on) {
+  ['#appHeader', '#gridWrap'].forEach(function (sel) {
+    var el = $(sel);
+    if (el) el.inert = !!on;
+  });
+}
+
+function focusTrapTargets() {
+  return Array.prototype.filter.call(
+    $('#modal').querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+    function (el) { return !el.disabled && el.offsetParent !== null; }
+  );
+}
+
+function renderDetail() {
+  var el = $('#detailBody');
+  var ch = state.selected;
+  if (!ch) {
+    el.innerHTML = '<div class="empty">Select a kanji to see its components and related characters.</div>';
+    $('#modalTitle').textContent = 'Kanji details';
+    return;
+  }
+
+  $('#modalTitle').textContent = 'Kanji ' + ch;
+
+  var info = KANJI[ch] || { s: '?', c: false };
+  var comps = componentsOf(ch);
+  var used = (USED_IN[ch] || []).slice();
+  var order = LISTS[state.list];
+
+  used.sort(function (a, b) {
+    var ia = order.indexOf(a), ib = order.indexOf(b);
+    if (ia < 0) ia = 1e9;
+    if (ib < 0) ib = 1e9;
+    return ia - ib;
+  });
+
+  var posRows = LIST_NAMES.map(function (n) {
+    var p = positionIn(n, ch);
+    return '<tr class="' + (n === state.list ? 'current' : '') + '"><td>' + n + '</td><td>' +
+      (p === null ? '&mdash;' : '#' + p) + '</td></tr>';
+  }).join('');
+
+  var compHtml = comps.length
+    ? '<div class="chips">' + comps.map(function (c) {
+        return '<button class="chip ' + (learned.has(c) ? 'learned' : 'missing') +
+          '" data-char="' + c + '" aria-label="Component ' + c + '">' + c + '</button>';
+      }).join('') + '</div>'
+    : '<div class="d-meta">Atomic &mdash; no further decomposition.</div>';
+
+  var usedHtml;
+  if (used.length) {
+    var cap = 60;
+    usedHtml = '<div class="chips">' + used.slice(0, cap).map(function (c) {
+      return '<button class="chip ' + (learned.has(c) ? 'learned' : '') +
+        '" data-char="' + c + '" aria-label="' + c + ', uses ' + ch + '">' + c + '</button>';
+    }).join('') + (used.length > cap
+      ? '<span class="chip more">+' + (used.length - cap) + ' more</span>' : '') + '</div>';
+  } else {
+    usedHtml = '<div class="d-meta">Not a component of any kanji in the dataset.</div>';
+  }
+
+  var dInfo = DICT[ch];
+  var badges = (learned.has(ch) ? '<span class="badge on">learned</span>' : '<span class="badge">unlearned</span>') +
+    (isReady(ch) ? '<span class="badge on">ready</span>' : '') +
+    (dInfo && dInfo.grade ? '<span class="badge">Grade ' + dInfo.grade + '</span>' : '') +
+    (dInfo && dInfo.freq ? '<span class="badge">Freq #' + dInfo.freq + '</span>' : '');
+
+  el.innerHTML =
+    '<div class="d-head">' +
+      '<div class="d-char" aria-hidden="true">' + ch + '</div>' +
+      '<div class="d-meta">' +
+        '<div>' + badges + '</div>' +
+        '<div style="margin-top:8px">Strokes: <b>' + info.s + '</b></div>' +
+        '<div>Common: <b>' + (info.c ? 'yes' : 'radical / rare') + '</b></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="d-section"><h2>Components</h2>' + compHtml + '</div>' +
+    '<div class="d-section"><h2>Used in (' + used.length + ')</h2>' + usedHtml + '</div>' +
+    renderDict(ch) +
+    '<div class="d-section"><h2>Position by list</h2>' +
+      '<table class="positions"><tbody>' + posRows + '</tbody></table></div>' +
+    '<div class="d-actions">' +
+      '<button class="btn" id="toggleLearned">' + (learned.has(ch) ? 'Mark unlearned' : 'Mark learned') + '</button>' +
+      '<button class="btn ghost" id="prevBtn">&larr; Prev</button>' +
+      '<button class="btn ghost" id="nextBtn">Next &rarr;</button>' +
+    '</div>' +
+    '<div class="hint">Click a component or kanji to jump to it. ' +
+    'Arrow keys move through the list, <kbd>M</kbd> marks the selected kanji learned, <kbd>Esc</kbd> closes this popup.</div>';
+
+  $('#toggleLearned').addEventListener('click', function () { toggleLearned(ch); });
+  $('#prevBtn').addEventListener('click', function () { step(-1); });
+  $('#nextBtn').addEventListener('click', function () { step(1); });
+
+  Array.prototype.forEach.call(el.querySelectorAll('.chip'), function (chip) {
+    chip.addEventListener('click', function () {
+      selectChar(chip.dataset.char);
+    });
+  });
+}
+
+function renderAll() {
+  renderTabs();
+  renderProgress();
+  buildGrid();
+  updateSelectionClasses();
+  renderDetail();
+}
+
+/* ---------- actions ---------- */
+
+function toggleLearned(ch) {
+  if (learned.has(ch)) learned.delete(ch);
+  else learned.add(ch);
+  saveLearned();
+  refreshTileStates();
+  renderTabs();
+  renderProgress();
+  renderDetail();
+}
+
+function step(delta) {
+  var chars = filteredChars();
+  if (!chars.length) return;
+  var i = chars.indexOf(state.selected);
+  if (i < 0) i = delta > 0 ? -1 : 0;
+  i = (i + delta + chars.length) % chars.length;
+  selectChar(chars[i]);
+  if (!isModalOpen()) focusTile(chars[i]);
+}
+
+function focusFirstTile() {
+  var first = filteredChars()[0];
+  if (first) focusTile(first);
+}
+
+function gridColumns() {
+  var widths = getComputedStyle($('#grid')).gridTemplateColumns.split(' ');
+  return Math.max(1, widths.length);
+}
+
+/* ---------- events ---------- */
+
+$('#grid').addEventListener('click', function (e) {
+  var tile = e.target.closest('.tile');
+  if (!tile) return;
+  selectChar(tile.dataset.char);
+  openModal();
+});
+
+$('#search').addEventListener('input', function (e) {
+  state.search = e.target.value;
+  buildGrid();
+  updateSelectionClasses();
+});
+
+$('#filter').addEventListener('change', function (e) {
+  state.filter = e.target.value;
+  buildGrid();
+  updateSelectionClasses();
+});
+
+$('#resetLearned').addEventListener('click', function () {
+  if (!learned.size) return;
+  if (confirm('Clear all learned marks?')) {
+    learned.clear();
+    saveLearned();
+    renderAll();
+  }
+});
+
+$('#themeToggle').addEventListener('click', function () {
+  applyTheme(currentTheme() === 'light' ? 'dark' : 'light');
+});
+
+$('#modalClose').addEventListener('click', closeModal);
+$('#modalBackdrop').addEventListener('click', closeModal);
+
+document.addEventListener('keydown', function (e) {
+  var m = $('#modal');
+
+  if (e.key === 'Escape' && !m.hidden) {
+    e.preventDefault();
+    closeModal();
+    return;
+  }
+
+  if (e.key === 'Tab' && !m.hidden) {
+    var items = focusTrapTargets();
+    if (items.length) {
+      var panel = $('#modalPanel');
+      var first = items[0];
+      var last = items[items.length - 1];
+      var active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || active === panel) { e.preventDefault(); last.focus(); }
+      } else {
+        if (active === last || active === panel) { e.preventDefault(); first.focus(); }
+      }
+    }
+    return;
+  }
+
+  var tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+
+  var cols = gridColumns();
+  switch (e.key) {
+    case 'ArrowRight': e.preventDefault(); step(1); break;
+    case 'ArrowLeft': e.preventDefault(); step(-1); break;
+    case 'ArrowDown': e.preventDefault(); step(cols); break;
+    case 'ArrowUp': e.preventDefault(); step(-cols); break;
+    case 'Home': {
+      e.preventDefault();
+      var firstChars = filteredChars();
+      if (firstChars.length) {
+        selectChar(firstChars[0]);
+        if (!isModalOpen()) focusTile(firstChars[0]);
+      }
+      break;
+    }
+    case 'End': {
+      e.preventDefault();
+      var lastChars = filteredChars();
+      if (lastChars.length) {
+        selectChar(lastChars[lastChars.length - 1]);
+        if (!isModalOpen()) focusTile(lastChars[lastChars.length - 1]);
+      }
+      break;
+    }
+    case 'm': case 'M':
+      if (state.selected) { e.preventDefault(); toggleLearned(state.selected); }
+      break;
+  }
+});
+
+/* ---------- init ---------- */
+
+$('#totalChars').textContent = Object.keys(KANJI).length;
+applyTheme(currentTheme());
+renderAll();
+</script>
+</body>
+</html>

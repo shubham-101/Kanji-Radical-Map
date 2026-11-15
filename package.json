@@ -9,6 +9,9 @@
   "private": true,
   "main": "build.js",
   "scripts": {
+    "build": "node build.js save",
+    "dictionary": "python build-dictionary.py",
+    "viewer": "node build-viewer.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

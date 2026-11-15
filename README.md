@@ -164,6 +164,34 @@ You must have Node.js and Git installed
   - (optional) `--mean-type=MEAN_TYPE` - see above
 - `save` - update files with final lists
 
+### Web viewer
+
+An interactive, self-contained web viewer is included:
+
+1. `npm run viewer` (or `node build-viewer.js`) - regenerates `index.html` with all
+   list and dependency data embedded
+2. Open `index.html` in a browser - no web server required
+
+Features: switch between frequency lists, search by kanji or component, inspect a
+kanji's components and the kanji that use it, jump between related characters, track
+learned characters (persisted in the browser's `localStorage`), and view English
+meanings, on/kun readings, grade/JLPT badges, related compound words, mnemonics, and
+short example sentences for every kanji.
+
+#### Dictionary data
+
+Meanings, readings, compound words and example sentences come from KANJIDIC2, JMdict
+(EDRDG, CC BY-SA 4.0) via the pre-built releases at
+<https://github.com/scriptin/jmdict-simplified>, and from Tatoeba example sentences
+(CC BY-SA 2.0 FR). Mnemonic keywords come from kanji-keys (multi-licensed, MIT-like).
+
+The full data (~250 MB raw, reduced to ~2 MB `data/external/dictionary.json`) is not
+checked into git. It is downloaded and rebuilt by:
+
+    npm run dictionary   # python build-dictionary.py
+
+See `data/external/ATTRIBUTION.md` for full source and license details.
+
 ## License
 
 This is a multi-license project. Choose any license from this list:

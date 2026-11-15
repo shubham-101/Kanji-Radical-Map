@@ -1,1 +1,8 @@
 node_modules/
+
+# Raw external data used only to build data/external/dictionary.json
+# (large; re-downloaded automatically by `python build-dictionary.py`)
+data/external/*
+!data/external/ATTRIBUTION.md
+!data/external/kanji-keys.json
+!data/external/dictionary.json

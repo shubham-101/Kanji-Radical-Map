@@ -1,0 +1,5 @@
+{
+  "buildCommand": "node build-viewer.js",
+  "outputDirectory": ".",
+  "cleanUrls": true
+}
