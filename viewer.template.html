@@ -122,6 +122,9 @@
     font-size: 13.5px;
   }
   input[type="search"] { min-width: 230px; }
+  /* Slim, hidden scrollbars (scrolling still works) */
+  #gridWrap, .d-body, .modal-panel { scrollbar-width: none; -ms-overflow-style: none; }
+  #gridWrap::-webkit-scrollbar, .d-body::-webkit-scrollbar, .modal-panel::-webkit-scrollbar { width: 0; height: 0; }
   .spacer { flex: 1; }
   .link-btn, .icon-btn {
     background: none; border: 1px solid var(--border); color: var(--muted);
@@ -377,6 +380,15 @@
         <option value="learned">Learned</option>
         <option value="ready">Ready to learn</option>
       </select>
+      <label class="sr-only" for="jlptFilter">Filter by JLPT level (KANJIDIC2)</label>
+      <select id="jlptFilter" title="JLPT levels from KANJIDIC2: 4 = basic (covers most N5–N4), 1 = advanced (N1)">
+        <option value="all">JLPT: all levels</option>
+        <option value="4">JLPT Level 4 — Basic (~100)</option>
+        <option value="3">JLPT Level 3 (~180)</option>
+        <option value="2">JLPT Level 2 (~740)</option>
+        <option value="1">JLPT Level 1 — Advanced (~1,000)</option>
+        <option value="none">JLPT: unrated</option>
+      </select>
       <button class="link-btn" id="resetLearned" title="Clear all learned marks">Reset progress</button>
     </div>
     <div class="progress"><i id="progressBar"></i></div>
@@ -426,6 +438,7 @@ var state = {
   // "aozora" is the recommended starting list (see README)
   list: LIST_NAMES.indexOf('aozora') >= 0 ? 'aozora' : LIST_NAMES[0],
   filter: 'all',
+  jlpt: 'all',
   search: '',
   selected: null
 };
@@ -599,6 +612,7 @@ function renderProgress() {
 
 function filteredChars() {
   var q = state.search.trim();
+  var jlpt = state.jlpt;
   var out = [];
   for (var i = 0; i < LISTS[state.list].length; i++) {
     var ch = LISTS[state.list][i];
@@ -606,6 +620,12 @@ function filteredChars() {
     if (state.filter === 'learned' && !learned.has(ch)) continue;
     if (state.filter === 'unlearned' && learned.has(ch)) continue;
     if (state.filter === 'ready' && !isReady(ch)) continue;
+    if (jlpt !== 'all') {
+      var d = DICT[ch];
+      var lvl = d && typeof d.jlpt === 'number' ? d.jlpt : null;
+      if (jlpt === 'none') { if (lvl !== null) continue; }
+      else if (lvl !== +jlpt) continue;
+    }
     out.push(ch);
   }
   return out;
@@ -868,6 +888,12 @@ $('#search').addEventListener('input', function (e) {
 
 $('#filter').addEventListener('change', function (e) {
   state.filter = e.target.value;
+  buildGrid();
+  updateSelectionClasses();
+});
+
+$('#jlptFilter').addEventListener('change', function (e) {
+  state.jlpt = e.target.value;
   buildGrid();
   updateSelectionClasses();
 });

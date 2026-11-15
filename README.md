@@ -49,7 +49,7 @@
 - 🧭 **Component-first learning order** — a topological sort of the radical graph of ~2,310 kanji ([algorithm](#how-it-works))
 - 📈 **Frequency-aware** — five lists (`aozora`, `news`, `twitter`, `wikipedia`, `all`) ordered by real-world usage, so you learn what you'll actually see
 - 🧩 **Interactive viewer** — click any kanji for components, usage, meaning, readings, mnemonics, related words and example sentences
-- 🔎 **Search & filter** — jump to any kanji by character or component; filter by Learned / Unlearned / Ready
+- 🔎 **Search & filter** — jump to any kanji by character or component; filter by Learned / Unlearned / Ready or by JLPT level
 - ✅ **Progress tracking** — mark characters learned, persisted in your browser; ready-to-learn highlighting
 - 🌙 **Dark & light themes**, fully keyboard-navigable, accessible (ARIA roles, focus trapping, reduced-motion support)
 - 📦 **Self-contained** — `index.html` ships the entire app and data; works offline, no server or build needed
@@ -208,6 +208,8 @@ This project would not exist without its upstream:
 - **[CJK Decompositions Data][cjk]** — component decomposition.
 - **KANJIDIC2 / JMdict** — meanings, readings and compound words (Electronic Dictionary Research and Development Group, **CC BY-SA 4.0**), via the pre-built releases at [scriptin/jmdict-simplified][jmdict-simplified].
 - **[Tatoeba][tatoeba]** — example sentences (**CC BY-SA 2.0 FR**), embedded in JMdict's example-sentence data (`source: "tatoeba"`).
+
+The JLPT filter uses KANJIDIC2's `misc.jlptLevel` — the legacy 4-level scale published by EDRDG (Level 4 = basic/easiest, roughly N5–N4; Level 1 = advanced, roughly N1). Levels are labelled with their character counts; characters without a level are grouped under "unrated".
 
 See [`data/external/ATTRIBUTION.md`](data/external/ATTRIBUTION.md) for the full attribution and license notes. If you redistribute the bundled dictionary data, keep the attribution and respect CC BY-SA share-alike.
 
