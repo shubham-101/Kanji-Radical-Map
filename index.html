@@ -299,7 +299,7 @@
   table.positions tr.current td { color: var(--accent); font-weight: 600; }
   table.positions td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 
-  .d-actions { display: flex; gap: 8px; margin-top: 24px; flex-wrap: wrap; }
+  .d-actions { display: flex; gap: 8px; margin: 0 0 18px; flex-wrap: wrap; }
   .btn {
     flex: 1 1 auto;
     background: var(--accent-dim);
@@ -798,7 +798,15 @@ function renderDetail() {
     (dInfo && dInfo.grade ? '<span class="badge">Grade ' + dInfo.grade + '</span>' : '') +
     (dInfo && dInfo.freq ? '<span class="badge">Freq #' + dInfo.freq + '</span>' : '');
 
+  var actionsHtml =
+    '<div class="d-actions">' +
+      '<button class="btn" id="toggleLearned">' + (learned.has(ch) ? 'Mark unlearned' : 'Mark learned') + '</button>' +
+      '<button class="btn ghost" id="prevBtn">&larr; Prev</button>' +
+      '<button class="btn ghost" id="nextBtn">Next &rarr;</button>' +
+    '</div>';
+
   el.innerHTML =
+    actionsHtml +
     '<div class="d-head">' +
       '<div class="d-char" aria-hidden="true">' + ch + '</div>' +
       '<div class="d-meta">' +
@@ -812,11 +820,6 @@ function renderDetail() {
     renderDict(ch) +
     '<div class="d-section"><h2>Position by list</h2>' +
       '<table class="positions"><tbody>' + posRows + '</tbody></table></div>' +
-    '<div class="d-actions">' +
-      '<button class="btn" id="toggleLearned">' + (learned.has(ch) ? 'Mark unlearned' : 'Mark learned') + '</button>' +
-      '<button class="btn ghost" id="prevBtn">&larr; Prev</button>' +
-      '<button class="btn ghost" id="nextBtn">Next &rarr;</button>' +
-    '</div>' +
     '<div class="hint">Click a component or kanji to jump to it. ' +
     'Arrow keys move through the list, <kbd>M</kbd> marks the selected kanji learned, <kbd>Esc</kbd> closes this popup.</div>';
 
