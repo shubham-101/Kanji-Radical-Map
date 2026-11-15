@@ -350,45 +350,70 @@
   /* ---------- radical tree ---------- */
 
   .tree-wrap {
-    background: radial-gradient(ellipse at center, rgba(37, 99, 235, .16), transparent 72%), var(--panel-2);
+    background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, .14) 0%, rgba(59, 130, 246, .05) 42%, transparent 74%), var(--panel-2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
   }
   .tree-wrap svg { display: block; width: 100%; height: auto; }
   .tree-wrap.atomic { background: transparent; border: 1px dashed var(--border); }
-  .tree-node { cursor: pointer; }
+
+  .tree-guide { fill: none; stroke: var(--accent-dim); stroke-width: 1px; stroke-dasharray: 2 6; opacity: .9; }
+  .tree-level-label {
+    font-size: 8px; letter-spacing: .08em; text-transform: uppercase;
+    fill: var(--muted); dominant-baseline: middle; opacity: .8;
+  }
+
+  .tree-edge { fill: none; stroke: var(--accent-dim); stroke-width: 2; transition: stroke-width .15s ease; }
+  .tree-edge.learned { stroke: var(--learned); }
+
+  .tree-node {
+    cursor: pointer;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: treePop .32s cubic-bezier(.22, 1.15, .36, 1) both;
+  }
+  @keyframes treePop {
+    from { opacity: 0; transform: scale(.55) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
   .tree-node:focus { outline: none; }
   .tree-node:focus-visible circle { stroke: var(--accent); stroke-width: 3px; }
-  .tree-legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 11.5px; margin-top: 8px; }
-  .tree-legend span { display: inline-flex; align-items: center; gap: 5px; }
-  .tree-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-  .tree-dot.root { background: var(--accent); }
-  .tree-dot.learned { background: var(--learned); }
-  .tree-dot.ready { background: transparent; border: 1.5px solid var(--ready); }
-  .tree-dot.unlearned { background: var(--border); }
-  .tree-edge { fill: none; stroke: var(--border); stroke-width: 2; }
-  .tree-edge.learned { stroke: var(--learned); stroke-opacity: .55; }
-  .tree-node circle { transition: stroke-width .15s ease; }
-  .tree-root circle { fill: var(--accent); stroke: var(--accent); }
-  .tree-learned circle { fill: var(--learned-dim); stroke: var(--learned); stroke-width: 1.5px; }
-  .tree-ready circle { fill: var(--panel-2); stroke: var(--ready); stroke-width: 1.5px; }
+
+  .tree-node circle { transition: r .18s ease, stroke-width .15s ease; }
+  .tree-root circle { fill: url(#treeRootGrad); stroke: rgba(255, 255, 255, .25); stroke-width: 1px; }
+  .tree-learned circle { fill: url(#treeLearnedGrad); stroke: rgba(255, 255, 255, .22); stroke-width: 1px; }
+  .tree-ready circle { fill: url(#treeReadyGrad); stroke: rgba(255, 255, 255, .22); stroke-width: 1px; }
   .tree-unlearned circle { fill: var(--panel-2); stroke: var(--border); stroke-width: 1.5px; }
+  .tree-trunc circle { stroke-dasharray: 4 3; }
+  .tree-atomic circle { stroke-dasharray: 2 3; opacity: .6; }
   .tree-node:hover circle { stroke-width: 2.5px; }
+
   .tree-glyph {
     font-family: var(--font-cjk);
-    font-size: 20px;
-    fill: var(--text);
+    fill: #fff;
     text-anchor: middle;
     dominant-baseline: central;
     pointer-events: none;
+    font-weight: 700;
+    paint-order: stroke;
+    stroke: var(--panel-2);
+    stroke-width: 3.5px;
+    stroke-linejoin: round;
   }
-  .tree-root .tree-glyph { font-size: 26px; fill: #fff; }
-  .tree-atomic circle { stroke-dasharray: 4 3; stroke-opacity: .65; }
-  .tree-atomic .tree-glyph { fill: var(--muted); }
-  .tree-dot.trunc { background: transparent; border: 1.5px dashed var(--muted); }
-  .tree-trunc circle { stroke-dasharray: 4 3; stroke-opacity: .8; }
+  .tree-unlearned .tree-glyph { fill: var(--text); }
   .tree-trunc .tree-glyph { fill: var(--text); }
+  .tree-atomic .tree-glyph { fill: var(--muted); }
+
+  .tree-legend { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 11px; margin-top: 10px; }
+  .tree-legend span { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--border); border-radius: 999px; }
+  .tree-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .tree-dot.root { background: linear-gradient(135deg, #60a5fa, #1e40af); }
+  .tree-dot.learned { background: linear-gradient(135deg, #4ade80, #15803d); }
+  .tree-dot.ready { background: linear-gradient(135deg, #2dd4bf, #0f766e); }
+  .tree-dot.unlearned { background: var(--panel-2); border: 1px solid var(--border); }
+  .tree-dot.trunc { background: transparent; border: 1.5px dashed var(--muted); }
+
   .tree-toggle {
     display: inline-block;
     margin-top: 10px;
@@ -739,14 +764,14 @@ function renderRadicalTree(ch) {
   var root = buildTreeModel(ch, treeFullDepth ? Infinity : 2);
   var W = 720;
   var depth = root.maxDepth;
-  var H = depth <= 2 ? 310 : depth <= 3 ? 370 : depth <= 4 ? 430 : 490;
+  var H = depth <= 2 ? 330 : depth <= 3 ? 380 : depth <= 4 ? 440 : 500;
   var cx = W / 2, cy = H / 2;
   var padAngle = 0.16, start = -Math.PI / 2, full = Math.PI * 2 - padAngle;
-  var rootR = 31;
+  var rootR = 32;
   var outer = Math.min(W, H) / 2 - 16;
-  var ring = root.maxDepth === 0 ? 0 : (outer - rootR) / root.maxDepth;
-  var radiusFor = function (d) { return d === 0 ? rootR : (d === 1 ? 24 : (d === 2 ? 19 : 15)); };
-  var fontFor = function (d) { return d === 0 ? 26 : (d === 1 ? 21 : (d === 2 ? 17 : 13)); };
+  var ring = depth === 0 ? 0 : (outer - rootR) / depth;
+  var radiusFor = function (d) { return d === 0 ? rootR : (d === 1 ? 23 : (d === 2 ? 18 : 14)); };
+  var fontFor = function (d) { return d === 0 ? 26 : (d === 1 ? 20 : (d === 2 ? 16 : 12)); };
 
   // angular placement: leaves share the angle equally
   function place(node, a0, a1) {
@@ -769,29 +794,48 @@ function renderRadicalTree(ch) {
     node.radius = radiusFor(node.depth);
     nodes.push(node);
     node.children.forEach(function (child) {
-      var savedPos = null;
-      walk(child); // child.pos is assigned here
-      savedPos = child.pos;
+      walk(child); // assigns child.pos and collects its subtree
       var cr = child.depth * ring;
       var mid = midAngle(node.angle, child.angle);
       var ctrl = polar(cx, cy, (r + cr) / 2, mid);
       edges.push({
         x1: node.pos.x, y1: node.pos.y,
         cx: ctrl.x, cy: ctrl.y,
-        x2: savedPos.x, y2: savedPos.y,
-        learned: learned.has(child.ch)
+        x2: child.pos.x, y2: child.pos.y,
+        learned: learned.has(child.ch),
+        depth: child.depth
       });
     });
   })(root);
 
+  var levelLabels = ['', 'Components', 'Sub-components', 'Deeper parts'];
   var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Decomposition tree of ' + ch + '">';
+  svg += '<defs>' +
+    '<radialGradient id="treeRootGrad" cx="35%" cy="32%" r="75%">' +
+      '<stop offset="0%" stop-color="#60a5fa"/><stop offset="55%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1e40af"/>' +
+    '</radialGradient>' +
+    '<radialGradient id="treeLearnedGrad" cx="35%" cy="32%" r="75%">' +
+      '<stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#15803d"/>' +
+    '</radialGradient>' +
+    '<radialGradient id="treeReadyGrad" cx="35%" cy="32%" r="75%">' +
+      '<stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#0f766e"/>' +
+    '</radialGradient>' +
+  '</defs>';
+
+  // concentric depth guides with level labels on the left edge
+  for (var gi = 1; gi <= depth; gi++) {
+    svg += '<circle class="tree-guide" cx="' + cx + '" cy="' + cy + '" r="' + (gi * ring) + '" />' +
+      '<text class="tree-level-label" x="14" y="' + (16 + (gi - 1) * 13) + '">L' + gi + ' · ' + escapeHtml(levelLabels[gi] || ('Depth ' + gi)) + '</text>';
+  }
+
   edges.forEach(function (e) {
     svg += '<path d="M ' + e.x1.toFixed(1) + ' ' + e.y1.toFixed(1) +
            ' Q ' + e.cx.toFixed(1) + ' ' + e.cy.toFixed(1) +
            ' ' + e.x2.toFixed(1) + ' ' + e.y2.toFixed(1) +
-           '" class="tree-edge' + (e.learned ? ' learned' : '') + '" />';
+           '" class="tree-edge' + (e.learned ? ' learned' : '') + '" style="stroke-opacity:' +
+           Math.max(0.4, 0.9 - (e.depth - 1) * 0.18) + '" />';
   });
-  nodes.forEach(function (node) {
+  nodes.forEach(function (node, i) {
     var trunc = node.depth > 0 && node.children.length === 0 && componentsOf(node.ch).length > 0;
     var atomic = node.depth > 0 && node.children.length === 0 && !trunc;
     var cls = node.depth === 0 ? 'root'
@@ -799,10 +843,8 @@ function renderRadicalTree(ch) {
         (trunc ? ' trunc' : '') + (atomic ? ' atomic' : '');
     var d = DICT[node.ch] || {};
     var info = KANJI[node.ch] || {};
-    var label = (d.m && d.m.length)
-      ? d.m.slice(0, 3).join(', ')
-      : 'strokes ' + (info.s || '?');
-    svg += '<g class="tree-node tree-' + cls + '" tabindex="0" role="button" data-char="' + node.ch + '" aria-label="Open ' + escapeHtml(node.ch + ' — ' + label) + '">' +
+    var label = (d.m && d.m.length) ? d.m.slice(0, 3).join(', ') : 'strokes ' + (info.s || '?');
+    svg += '<g class="tree-node tree-' + cls + '" tabindex="0" role="button" data-char="' + node.ch + '" style="animation-delay:' + (i * 22) + 'ms" aria-label="Open ' + escapeHtml(node.ch + ' — ' + label) + '">' +
       '<circle cx="' + node.pos.x.toFixed(1) + '" cy="' + node.pos.y.toFixed(1) + '" r="' + node.radius + '" />' +
       '<text class="tree-glyph" x="' + node.pos.x.toFixed(1) + '" y="' + node.pos.y.toFixed(1) + '" style="font-size:' + fontFor(node.depth) + 'px">' + node.ch + '</text>' +
       '<title>' + escapeHtml(label) + '</title>' +
@@ -813,9 +855,9 @@ function renderRadicalTree(ch) {
   var legend = '<div class="tree-legend">' +
     '<span><i class="tree-dot root"></i>kanji</span>' +
     '<span><i class="tree-dot learned"></i>learned</span>' +
-    '<span><i class="tree-dot ready"></i>ready (components learned)</span>' +
+    '<span><i class="tree-dot ready"></i>ready</span>' +
     '<span><i class="tree-dot unlearned"></i>unlearned</span>' +
-    '<span><i class="tree-dot trunc"></i>has more decomposition</span>' +
+    '<span><i class="tree-dot trunc"></i>has more below</span>' +
   '</div>';
 
   var anyTrunc = false;
@@ -829,7 +871,7 @@ function renderRadicalTree(ch) {
     ? '<button class="tree-toggle" id="treeToggle" type="button">' + (treeFullDepth ? 'Show essentials only' : 'Show full decomposition') + '</button>'
     : '';
 
-  if (root.maxDepth === 0) {
+  if (depth === 0) {
     return '<div class="tree-wrap atomic">' + svg + '</div>' +
       '<p class="quiz-hint" style="margin:10px 0 0; text-align:center">Atomic — nothing decomposes further.</p>';
   }
