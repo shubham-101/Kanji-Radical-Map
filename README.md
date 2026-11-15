@@ -1,20 +1,110 @@
-# TopoKanji
+<p align="center">
+  <img src="docs/icon.svg" alt="Kanji Radical Map icon" width="96" height="96" />
+</p>
 
-> **30 seconds explanation for people who want to learn kanji:**
+<h1 align="center">漢字 Kanji Radical Map</h1>
+
+<p align="center">
+  <b>Master Japanese kanji the way they're actually built — one component at a time.</b>
+</p>
+
+<p align="center">
+  <a href="#license"><img alt="License" src="https://img.shields.io/badge/license-multi--license-brightgreen"></a>
+  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D%2018-brightgreen">
+  <img alt="Viewer" src="https://img.shields.io/badge/viewer-static%20%26%20self--contained-blue">
+  <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fshubham-101%2FKanji-Radical-Map"><img alt="Deploy with Vercel" src="https://vercel.com/button"></a>
+</p>
+
+---
+
+> **30 seconds, and you'll know why this works:**
 >
-> It is best to learn kanji starting from simple characters and then learning complex ones as compositions of "parts", which are called "radicals" or "components". For example:
+> It is best to learn kanji starting from simple characters and then learn complex ones as
+> compositions of smaller "parts" — radicals and components.
 >
 > - 一 → 二 → 三
 > - 丨 → 凵 → 山 → 出
 > - 言 → 五 → 口 → 語
 >
-> It is also smart to learn more common kanji first.
+> It is also smart to learn the most common kanji first.
 >
-> This project is based on those two ideas and provides properly ordered lists of kanji to make your learning process as fast, simple, and effective as possible.
+> Kanji Radical Map orders all ~2,300 characters you need exactly that way: **no kanji
+> appears before its components, and more frequent kanji come earlier.** Built on
+> [TopoKanji][topokanji] by Dmitry Shpika, extended with an interactive web viewer and a
+> full dictionary.
 
-Motivation for this project initially came from reading this article: [The 5 Biggest Mistakes People Make When Learning Kanji][mistakes].
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshot-grid.jpg" alt="The kanji grid in frequency order" width="480"></td>
+    <td align="center"><img src="docs/screenshot-popup.jpg" alt="Kanji details popup for 愛" width="480"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>2,310 kanji</b> in perfect component order, color-coded by progress</sub></td>
+    <td align="center"><sub><b>Meaning, readings, words and sentences</b> — one popup per kanji</sub></td>
+  </tr>
+</table>
 
-First 100 kanji from [lists/aozora.txt](lists/aozora.txt) (formatted for convenience):
+## ✨ Features
+
+- 🧭 **Component-first learning order** — a topological sort of the radical graph of ~2,310 kanji ([algorithm](#how-it-works))
+- 📈 **Frequency-aware** — five lists (`aozora`, `news`, `twitter`, `wikipedia`, `all`) ordered by real-world usage, so you learn what you'll actually see
+- 🧩 **Interactive viewer** — click any kanji for components, usage, meaning, readings, mnemonics, related words and example sentences
+- 🔎 **Search & filter** — jump to any kanji by character or component; filter by Learned / Unlearned / Ready
+- ✅ **Progress tracking** — mark characters learned, persisted in your browser; ready-to-learn highlighting
+- 🌙 **Dark & light themes**, fully keyboard-navigable, accessible (ARIA roles, focus trapping, reduced-motion support)
+- 📦 **Self-contained** — `index.html` ships the entire app and data; works offline, no server or build needed
+
+## 🚀 Quick start
+
+**No build required.** The viewer is committed to the repository.
+
+```powershell
+git clone https://github.com/shubham-101/Kanji-Radical-Map.git
+```
+
+Open **`index.html`** in your browser. That's it.
+
+### Rebuild the viewer
+
+```powershell
+npm install
+npm run build    # regenerate lists from data (node build.js save)
+npm run viewer   # regenerate index.html from the lists + dictionary
+```
+
+### Rebuild the dictionary data
+
+```powershell
+npm run dictionary   # downloads KANJIDIC2/JMdict (EDRDG, CC BY-SA) and builds data/external/dictionary.json
+```
+
+Requires Python 3. The raw downloads (~250 MB) are git-ignored and re-fetched on demand; only the reduced `dictionary.json` is committed.
+
+## ⌨️ Keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| `←` / `→` | Move one kanji in the list |
+| `↑` / `↓` | Move up / down a row of the grid |
+| `Home` / `End` | Jump to first / last kanji |
+| `Enter` / `Space` | Select a kanji (open its details) |
+| `M` | Mark the selected kanji learned |
+| `Tab` / `Shift+Tab` | Move focus (trapped inside the popup while it's open) |
+| `Esc` | Close the popup |
+
+## 📚 The lists
+
+Each list covers **2,310 characters** — radicals included, Jōyō-scale coverage.
+
+| List | Ordered by | Coverage |
+| --- | --- | --- |
+| `aozora` | kanji in Japanese fiction/non-fiction | 95.89% |
+| `news` | kanji in online news | 99.54% |
+| `twitter` | kanji in Twitter messages | 99.07% |
+| `wikipedia` | kanji in Wikipedia articles | 98.80% |
+| `all` | combined average (experimental) | 98.33% |
+
+### First 100 kanji from `aozora`
 
     人一丨口日目儿見凵山
     出十八木未丶来大亅了
@@ -27,172 +117,101 @@ First 100 kanji from [lists/aozora.txt](lists/aozora.txt) (formatted for conveni
     今下白勺的云牛物立小
     文矢知入乍作聿書学合
 
-These lists can be found in [`lists` directory](lists). They only differ in order of kanji. Each file contains a list of kanji, ordered as described in following sections. There are few options (see [Used data](#used-data) for details):
+## 🔍 How it works
 
-- `aozora.(json|txt)` - ordered by kanji frequency in Japanese fiction and non-fiction books; I recommend this list if you're starting to learn kanji
-- `news.(json|txt)` - ordered by kanji frequency in online news
-- `twitter.(json|txt)` - ordered by kanji frequency in Twitter messages
-- `wikipedia.(json|txt)` - ordered by kanji frequency in Wikipedia articles
-- `all.(json|txt)` - combined "average" version of all previous; this one is experimental, I don't recommend using it
+A kanji like 語 is three parts: 言, 五, 口 — which are kanji themselves. The lists are built so that every kanji appears **after** all of its components (a [topological ordering][topsort] of the DAG of component relationships) and **heavier (rare) kanji come later**. Learn top to bottom and you will never meet a component you don't know yet.
 
-You can use these lists to build an [Anki][] deck or just as a guidance. If you're looking for "names" or meanings of kanji, you might want to check my [kanji-keys](https://github.com/scriptin/kanji-keys) project.
+The ordering is computed with a modified [Kahn (1962)][kahn] algorithm with an intermediate frequency-based sort. Characters come from [KanjiVG][] (stroke data) and are decomposed with [CJK Decompositions Data][cjk], with hand-tuned overrides.
 
-## What is a properly ordered list of kanji?
+<details>
+<summary><b>Tables and tuning rules (upstream)</b></summary>
 
-If you look at a kanji like 語, you can see it consists of at least three distinct parts: 言, 五, 口. Those are kanji by themselves too. The idea behind this project is to find the order of about 2000-2500 common kanji, in which no kanji appears before its' parts, so you only learn a new kanji when you already know its' components.
+### Which kanji are (not) included?
 
-### Properties of properly ordered lists
-
-1. **No kanji appear before it's parts (components).** In fact, in you treat kanji as nodes in a [graph][] structure, and connect them with directed edges, where each edge means "kanji A includes kanji B as a component", it all forms a [directed acyclic graph (DAG)][dag]. For any DAG, it is possible to build a [topological order][topsort], which is basically what "no kanji appear before it's parts" means.
-2. **More common kanji come first.** That way you learn useful characters as soon as possible.
-
-### Algorithm
-
-[Topological sorting][topsort] is done by using a modified version of [Kahn (1962) algorithm][kahn] with intermediate sorting step which deals with the second property above. This intermediate sorting uses the "weight" of each character: common kanji (lighter) tend appear before rare kanji (heavier). See source code for details.
-
-## Used data
-
-Initial unsorted list contains only kanji which are present in [KanjiVG][] project, so for each character there is a data of its' shape and stroke order.
-
-Characters are split into components using [CJK Decompositions Data][cjk] project, along with "fixes" to simplify final lists and avoid characters which are not present in initial list.
-
-Statistical data of kanji usage frequencies was collected by processing raw textual data from various sources. See [kanji-frequency][] repository for details.
-
-## Which kanji are (not) included?
-
-Kanji list covers about 95-99% of kanji found in various Japanese texts. Generally, the goal is provide something similar to [Jōyō kanji][jouyou], but based on actual data. Radicals are also included, but only those which are parts of some kanji in the list.
+Kanji list covers about 95–99% of kanji found in various Japanese texts. Generally, the goal is to provide something similar to [Jōyō kanji][jouyou], but based on actual data. Radicals are also included, but only those which are parts of some kanji in the list.
 
 Kanji/radical must **NOT** appear in this list if it is:
 
-- not included in KanjiVG character set
+- not included in the KanjiVG character set
 - primarily used in names (people, places, etc.) or in some specific terms (religion, mythology, etc.)
-- mostly used because of its' shape, e.g. a part of text emoticons/kaomoji like `( ^ω^)个`
-- a part of currently popular meme, manga/anime/dorama/movie title, #hashtag, etc., and otherwise is not commonly used
+- mostly used because of its shape, e.g. a part of text emoticons/kaomoji like `( ^ω^)个`
+- a part of a popular meme, manga/anime/dorama/movie title, #hashtag, etc.
 
-## Files and formats
+### Statistical data
 
-### `lists` directory
+Frequency tables are derived from raw texts; see [kanji-frequency][kanji-frequency] for how they were collected.
 
-Files in `lists` directory are final lists.
+</details>
 
-- `*.txt` files contain lists as plain text, one character per line; those files can be interpreted as CSV/TSV files with a single column
-- `*.json` files contain lists as [JSON][] arrays
+## 🛠️ Command-line reference
 
-All files are encoded in UTF-8, without [byte order mark (BOM)][bom], and have unix-style [line endings][eol], `LF`.
+```powershell
+node build.js show                          # print the ordered lists
+node build.js show --freq-table=aozora      # only one list (aozora, news, twitter, wikipedia, all)
+node build.js show --per-line=50            # line width
+node build.js coverage                      # coverage of each frequency table
+node build.js save                          # regenerate lists + dependencies
+node build.js suggest-add --num=20          # suggest kanji to add
+node build.js suggest-remove --num=20        # suggest kanji to remove
+npm run viewer                              # rebuild index.html
+npm run dictionary                           # rebuild dictionary data (Python 3)
+```
 
-### `dependencies` directory
+<details>
+<summary><b>Repository layout & file formats</b></summary>
 
-Files in `dependencies` directory are "flat" equivalents of CJK-decompositions (see below). "Dependency" here roughly means "a component of the visual decomposition" for kanji.
+### `lists/`
 
-- `1-to-1.txt` has a format compatible with [tsort][] command line utility; first character in each line is "target" kanji, second character is target's dependency or `0`
-- `1-to-1.json` contains a JSON array with the same data as in `1-to-1.txt`
-- `1-to-N.txt` is similar, but lists all "dependecies" at once
-- `1-to-N.json` contains a JSON object with the same data as in `1-to-N.txt`
+- `*.txt` — final lists, one character per line (CSV/TSV-compatible)
+- `*.json` — same as JSON arrays
+- UTF-8 without BOM, `LF` line endings
 
-All files are encoded in UTF-8, without [byte order mark (BOM)][bom], and have unix-style [line endings][eol], `LF`.
+### `dependencies/`
 
-### `data` directory
+"Dependency" = a component of a kanji.
 
-- `kanji.json` - data for kanji included in final ordered lists, including [radicals][kangxi]
-- `kanjivg.txt` - list of kanji from [KanjiVG][]
-- `cjk-decomp-{VERSION}.txt` - data from [CJK Decompositions Data][cjk], without any modifications
-- `cjk-decomp-override.txt` - data to override some CJK's decompositions
-- `kanji-frequency/*.json` - kanji frequency tables
+- `1-to-1.txt` — `tsort`-compatible: first character is the target, second is its dependency (`0` = none)
+- `1-to-1.json`, `1-to-N.txt`, `1-to-N.json` — all of a kanji's components at once
 
-All files are encoded in UTF-8, without [byte order mark (BOM)][bom]. All files, except for `cjk-decomp-{VERSION}.txt`, have unix-style [line endings][eol], `LF`.
+### `data/`
 
-#### `data/kanji.json`
+- `kanji.json` — `[character, strokeCount, isCommon]` per entry
+- `kanjivg.txt` — characters present in KanjiVG
+- `cjk-decomp-{VERSION}.txt`, `cjk-decomp-override.txt` — decomposition sources and overrides
+- `kanji-frequency/*.json` — usage frequency tables
+- `external/dictionary.json` — merged meanings, readings, words, examples ([attribution](data/external/ATTRIBUTION.md))
 
-Contains table with data for kanji, including radicals. Columns are:
-
-1. Character itself
-2. Stroke count
-3. Frequency flag:
-   - `true` if it is a common kanji
-   - `false` if it is primarily used as a radical/component and unlikely to be seen within top 3000 in kanji usage frequency tables. In this case character is only listed because it's useful for decomposition, not as a standalone kanji
-
-Resrictions:
+### Restrictions on `data/kanji.json`
 
 - No duplicates
-- Each character must be listed in `kanjivg.txt`
-- Each character must be listed on the left hand side in exactly one line in `cjk-decomp-{VERSION}.txt`
-- Each character *may* be listed on the left hand side in exactly one line in `cjk-decomp-override.txt`
+- Each character must be in `kanjivg.txt`
+- Each character must appear exactly once on the left-hand side of one line in `cjk-decomp-{VERSION}.txt`
+- Each character *may* appear in `cjk-decomp-override.txt` (used to fix upstream records)
 
-#### `data/kanjivg.txt`
+</details>
 
-Simple list of characters which are present in KanjiVG project. Those are from the list of `*.svg` files in [KanjiVG's Github repository][kanjivg-github].
+## 🌐 Deploy your own
 
-#### `data/cjk-decomp-{VERSION}.txt`
+This repository is a fully static site. Click the button (or import the repo manually at <https://vercel.com/new>):
 
-Data file from [CJK Decompositions Data][cjk] project, see [description of its' format][cjk-format].
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fshubham-101%2FKanji-Radical-Map)
 
-#### `data/cjk-decomp-override.txt`
+A `vercel.json` is included: build command `node build-viewer.js`, output `.` (the root, serving `index.html`). No environment variables, no serverless functions, no build dependencies.
 
-Same format as `cjk-decomp-{VERSION}.txt`, except:
+## 🙏 Credits & data sources
 
-- comments starting with `#` allowed
-- purpose of each record in this file is to override the one from `cjk-decomp-{VERSION}.txt`
-- type of decomposition is always `fix`, which just means "fix a record for the same character from original file"
+This project would not exist without its upstream:
 
-Special character `0` is used to distinguish invalid decompositions (which lead to characters with no graphical representation) from those which just can't be decomposed further into something meaningful. For example, `一:fix(0)` means that this kanji can't be further decomposed, since it's just a single stroke.
+- **[TopoKanji][topokanji]** — the original lists, algorithm, and all data pipelines, by **Dmitry Shpika** (MIT-compatible multi-license).
+- **[JLPT/kanji-keys][kanji-keys]** — mnemonic keywords, by the same author.
+- **[KanjiVG][]** — kanji shapes and stroke order.
+- **[CJK Decompositions Data][cjk]** — component decomposition.
+- **KANJIDIC2 / JMdict** — meanings, readings and compound words (Electronic Dictionary Research and Development Group, **CC BY-SA 4.0**), via the pre-built releases at [scriptin/jmdict-simplified][jmdict-simplified].
+- **[Tatoeba][tatoeba]** — example sentences (**CC BY-SA 2.0 FR**), embedded in JMdict's example-sentence data (`source: "tatoeba"`).
 
-NOTE: Strictly speaking, records in this file are not always "visual decompositions" (but most of them are). Instead, it's just an attempt to provide meaningful recommendations of kanji learning order.
+See [`data/external/ATTRIBUTION.md`](data/external/ATTRIBUTION.md) for the full attribution and license notes. If you redistribute the bundled dictionary data, keep the attribution and respect CC BY-SA share-alike.
 
-#### `data/kanji-frequency/*.json`
-
-See [kanji-frequency][] repository for details.
-
-## Usage
-
-You must have Node.js and Git installed
-
-1. `git clone https://github.com/THIS/REPO.git`
-2. `npm install`
-3. `node build.js` + commands and arguments described below
-
-### Command-line commands and arguments
-
-- `show` - only display sorted list without writing into files
-  - (optional) `--per-line=NUM` - explicitly tell how many characters per line to display. `50` by default. Applicable only to (no  arguments)
-  - (optional) `--freq-table=TABLE_NAME` - use only one frequency table. Table names are file names from `data/kanji-frequency` directory, without `.json` extension, e.g. `all` ("combined" list), `aozora`, etc. When omitted, all frequency tables are used
-- `coverage` - show tables coverage, i.e. which fraction of characters from each frequency table is included into kanji list
-- `suggest-add` - suggest kanji to add in a list, based on coverage within kanji usage frequency tables
-  - (required) `--num=NUM` - how many
-  - (optional) `--mean-type=MEAN_TYPE` - same as previous, sort by given mean type: `arithmetic` (most "extreme"), `geometric`, `harmonic` (default, most "conservative"). See [Pythagorean means][mean-type] for details
-- `suggest-remove` - suggest kanji to remove from a list, reverse of `suggest-add`
-  - (required) `--num=NUM` - see above
-  - (optional) `--mean-type=MEAN_TYPE` - see above
-- `save` - update files with final lists
-
-### Web viewer
-
-An interactive, self-contained web viewer is included:
-
-1. `npm run viewer` (or `node build-viewer.js`) - regenerates `index.html` with all
-   list and dependency data embedded
-2. Open `index.html` in a browser - no web server required
-
-Features: switch between frequency lists, search by kanji or component, inspect a
-kanji's components and the kanji that use it, jump between related characters, track
-learned characters (persisted in the browser's `localStorage`), and view English
-meanings, on/kun readings, grade/JLPT badges, related compound words, mnemonics, and
-short example sentences for every kanji.
-
-#### Dictionary data
-
-Meanings, readings, compound words and example sentences come from KANJIDIC2, JMdict
-(EDRDG, CC BY-SA 4.0) via the pre-built releases at
-<https://github.com/scriptin/jmdict-simplified>, and from Tatoeba example sentences
-(CC BY-SA 2.0 FR). Mnemonic keywords come from kanji-keys (multi-licensed, MIT-like).
-
-The full data (~250 MB raw, reduced to ~2 MB `data/external/dictionary.json`) is not
-checked into git. It is downloaded and rebuilt by:
-
-    npm run dictionary   # python build-dictionary.py
-
-See `data/external/ATTRIBUTION.md` for full source and license details.
-
-## License
+## 📜 License
 
 This is a multi-license project. Choose any license from this list:
 
@@ -202,26 +221,21 @@ This is a multi-license project. Choose any license from this list:
 - [LGPL-3.0](http://www.gnu.org/licenses/lgpl-3.0.html) or any later version
 - [MIT](http://opensource.org/licenses/MIT)
 
+Note: the dictionary data bundled in `index.html` / `data/external/dictionary.json` is **CC BY-SA 4.0** — keep attribution and share alike when redistributing it.
+
+[topokanji]: https://github.com/scriptin/topokanji
+[kanji-keys]: https://github.com/scriptin/kanji-keys
+[jmdict-simplified]: https://github.com/scriptin/jmdict-simplified
+[tatoeba]: https://tatoeba.org
 [mistakes]: http://www.tofugu.com/2010/03/25/the-5-biggest-mistakes-people-make-when-learning-kanji/
-[anki]: http://ankisrs.net/
 [graph]: https://en.wikipedia.org/wiki/Graph_(mathematics)
-[dag]: https://en.wikipedia.org/wiki/Directed_acyclic_graph
 [topsort]: https://en.wikipedia.org/wiki/Topological_sorting
-[tsort]: https://en.wikipedia.org/wiki/Tsort
 [kahn]: http://dl.acm.org/citation.cfm?doid=368996.369025
 [wiki-dumps]: https://dumps.wikimedia.org/
-[jawiki]: https://dumps.wikimedia.org/jawiki/
-[aozora]: http://www.aozora.gr.jp/
-[twitter-stream]: https://dev.twitter.com/streaming/overview
-[twitter-bot]: https://github.com/scriptin/twitter-kanji-frequency
 [jouyou]: https://en.wikipedia.org/wiki/J%C5%8Dy%C5%8D_kanji
 [kangxi]: https://en.wikipedia.org/wiki/Kangxi_radical
 [kanjivg]: http://kanjivg.tagaini.net/
 [kanjivg-github]: https://github.com/KanjiVG/kanjivg
 [cjk]: https://cjkdecomp.codeplex.com/
-[cjk-format]: https://cjkdecomp.codeplex.com/wikipage?title=cjk-decomp
 [json]: http://json.org/
-[bom]: https://en.wikipedia.org/wiki/Byte_order_mark
-[eol]: https://en.wikipedia.org/wiki/Newline
-[mean-type]: https://en.wikipedia.org/wiki/Pythagorean_means
 [kanji-frequency]: https://github.com/scriptin/kanji-frequency
