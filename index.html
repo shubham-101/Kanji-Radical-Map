@@ -347,6 +347,62 @@
     border-radius: 4px; padding: 0 5px; font-size: 11px; font-family: inherit;
   }
 
+  /* ---------- radical tree ---------- */
+
+  .tree-wrap {
+    background: radial-gradient(ellipse at center, rgba(37, 99, 235, .16), transparent 72%), var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .tree-wrap svg { display: block; width: 100%; height: auto; }
+  .tree-wrap.atomic { background: transparent; border: 1px dashed var(--border); }
+  .tree-node { cursor: pointer; }
+  .tree-node:focus { outline: none; }
+  .tree-node:focus-visible circle { stroke: var(--accent); stroke-width: 3px; }
+  .tree-legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 11.5px; margin-top: 8px; }
+  .tree-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .tree-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .tree-dot.root { background: var(--accent); }
+  .tree-dot.learned { background: var(--learned); }
+  .tree-dot.ready { background: transparent; border: 1.5px solid var(--ready); }
+  .tree-dot.unlearned { background: var(--border); }
+  .tree-edge { fill: none; stroke: var(--border); stroke-width: 2; }
+  .tree-edge.learned { stroke: var(--learned); stroke-opacity: .55; }
+  .tree-node circle { transition: stroke-width .15s ease; }
+  .tree-root circle { fill: var(--accent); stroke: var(--accent); }
+  .tree-learned circle { fill: var(--learned-dim); stroke: var(--learned); stroke-width: 1.5px; }
+  .tree-ready circle { fill: var(--panel-2); stroke: var(--ready); stroke-width: 1.5px; }
+  .tree-unlearned circle { fill: var(--panel-2); stroke: var(--border); stroke-width: 1.5px; }
+  .tree-node:hover circle { stroke-width: 2.5px; }
+  .tree-glyph {
+    font-family: var(--font-cjk);
+    font-size: 20px;
+    fill: var(--text);
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+  .tree-root .tree-glyph { font-size: 26px; fill: #fff; }
+  .tree-atomic circle { stroke-dasharray: 4 3; stroke-opacity: .65; }
+  .tree-atomic .tree-glyph { fill: var(--muted); }
+  .tree-dot.trunc { background: transparent; border: 1.5px dashed var(--muted); }
+  .tree-trunc circle { stroke-dasharray: 4 3; stroke-opacity: .8; }
+  .tree-trunc .tree-glyph { fill: var(--text); }
+  .tree-toggle {
+    display: inline-block;
+    margin-top: 10px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 7px;
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+  .tree-toggle:hover { color: var(--text); border-color: var(--accent-dim); }
+
   /* ---------- quiz / SRS ---------- */
 
   .badge-dot {
@@ -633,6 +689,153 @@ function renderDict(ch) {
   return html;
 }
 
+/* ---------- radical tree (radial mind-map) ---------- */
+
+function buildTreeModel(ch, depthLimit) {
+  var guard = 0;
+  var maxDepth = 0;
+  depthLimit = depthLimit || Infinity;
+  function make(c, depth, path) {
+    guard++;
+    maxDepth = Math.max(maxDepth, depth);
+    var children = depth >= depthLimit
+      ? []
+      : componentsOf(c).filter(function (k) {
+          return guard < 500 && path.indexOf(k) === -1; // acyclic guard
+        });
+    return {
+      ch: c,
+      depth: depth,
+      angle: 0,
+      children: children.map(function (k) { return make(k, depth + 1, path.concat([k])); })
+    };
+  }
+  var root = make(ch, 0, [ch]);
+  root.maxDepth = maxDepth;
+  return root;
+}
+
+function leafCount(node) {
+  if (!node.children.length) return 1;
+  var total = 0;
+  for (var i = 0; i < node.children.length; i++) total += leafCount(node.children[i]);
+  return total;
+}
+
+function polar(cx, cy, r, angle) {
+  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+}
+
+function midAngle(a, b) {
+  var d = b - a;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  return a + d / 2;
+}
+
+var treeFullDepth = false; // show full decomposition or essentials only (depth 2)
+
+function renderRadicalTree(ch) {
+  var root = buildTreeModel(ch, treeFullDepth ? Infinity : 2);
+  var W = 720;
+  var depth = root.maxDepth;
+  var H = depth <= 2 ? 310 : depth <= 3 ? 370 : depth <= 4 ? 430 : 490;
+  var cx = W / 2, cy = H / 2;
+  var padAngle = 0.16, start = -Math.PI / 2, full = Math.PI * 2 - padAngle;
+  var rootR = 31;
+  var outer = Math.min(W, H) / 2 - 16;
+  var ring = root.maxDepth === 0 ? 0 : (outer - rootR) / root.maxDepth;
+  var radiusFor = function (d) { return d === 0 ? rootR : (d === 1 ? 24 : (d === 2 ? 19 : 15)); };
+  var fontFor = function (d) { return d === 0 ? 26 : (d === 1 ? 21 : (d === 2 ? 17 : 13)); };
+
+  // angular placement: leaves share the angle equally
+  function place(node, a0, a1) {
+    node.angle = (a0 + a1) / 2;
+    if (!node.children.length) return;
+    var leaves = leafCount(node);
+    var cur = a0;
+    node.children.forEach(function (child) {
+      var span = (a1 - a0) * (leafCount(child) / leaves);
+      place(child, cur, cur + span);
+      cur += span;
+    });
+  }
+  place(root, start, start + full);
+
+  var nodes = [], edges = [];
+  (function walk(node) {
+    var r = node.depth * ring;
+    node.pos = polar(cx, cy, r, node.angle);
+    node.radius = radiusFor(node.depth);
+    nodes.push(node);
+    node.children.forEach(function (child) {
+      var savedPos = null;
+      walk(child); // child.pos is assigned here
+      savedPos = child.pos;
+      var cr = child.depth * ring;
+      var mid = midAngle(node.angle, child.angle);
+      var ctrl = polar(cx, cy, (r + cr) / 2, mid);
+      edges.push({
+        x1: node.pos.x, y1: node.pos.y,
+        cx: ctrl.x, cy: ctrl.y,
+        x2: savedPos.x, y2: savedPos.y,
+        learned: learned.has(child.ch)
+      });
+    });
+  })(root);
+
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Decomposition tree of ' + ch + '">';
+  edges.forEach(function (e) {
+    svg += '<path d="M ' + e.x1.toFixed(1) + ' ' + e.y1.toFixed(1) +
+           ' Q ' + e.cx.toFixed(1) + ' ' + e.cy.toFixed(1) +
+           ' ' + e.x2.toFixed(1) + ' ' + e.y2.toFixed(1) +
+           '" class="tree-edge' + (e.learned ? ' learned' : '') + '" />';
+  });
+  nodes.forEach(function (node) {
+    var trunc = node.depth > 0 && node.children.length === 0 && componentsOf(node.ch).length > 0;
+    var atomic = node.depth > 0 && node.children.length === 0 && !trunc;
+    var cls = node.depth === 0 ? 'root'
+      : (learned.has(node.ch) ? 'learned' : (isReady(node.ch) ? 'ready' : 'unlearned')) +
+        (trunc ? ' trunc' : '') + (atomic ? ' atomic' : '');
+    var d = DICT[node.ch] || {};
+    var info = KANJI[node.ch] || {};
+    var label = (d.m && d.m.length)
+      ? d.m.slice(0, 3).join(', ')
+      : 'strokes ' + (info.s || '?');
+    svg += '<g class="tree-node tree-' + cls + '" tabindex="0" role="button" data-char="' + node.ch + '" aria-label="Open ' + escapeHtml(node.ch + ' — ' + label) + '">' +
+      '<circle cx="' + node.pos.x.toFixed(1) + '" cy="' + node.pos.y.toFixed(1) + '" r="' + node.radius + '" />' +
+      '<text class="tree-glyph" x="' + node.pos.x.toFixed(1) + '" y="' + node.pos.y.toFixed(1) + '" style="font-size:' + fontFor(node.depth) + 'px">' + node.ch + '</text>' +
+      '<title>' + escapeHtml(label) + '</title>' +
+    '</g>';
+  });
+  svg += '</svg>';
+
+  var legend = '<div class="tree-legend">' +
+    '<span><i class="tree-dot root"></i>kanji</span>' +
+    '<span><i class="tree-dot learned"></i>learned</span>' +
+    '<span><i class="tree-dot ready"></i>ready (components learned)</span>' +
+    '<span><i class="tree-dot unlearned"></i>unlearned</span>' +
+    '<span><i class="tree-dot trunc"></i>has more decomposition</span>' +
+  '</div>';
+
+  var anyTrunc = false;
+  for (var i = 0; i < nodes.length; i++) {
+    if (nodes[i].depth > 0 && nodes[i].children.length === 0 && componentsOf(nodes[i].ch).length > 0) {
+      anyTrunc = true;
+      break;
+    }
+  }
+  var toggle = (anyTrunc || treeFullDepth)
+    ? '<button class="tree-toggle" id="treeToggle" type="button">' + (treeFullDepth ? 'Show essentials only' : 'Show full decomposition') + '</button>'
+    : '';
+
+  if (root.maxDepth === 0) {
+    return '<div class="tree-wrap atomic">' + svg + '</div>' +
+      '<p class="quiz-hint" style="margin:10px 0 0; text-align:center">Atomic — nothing decomposes further.</p>';
+  }
+  return '<div class="tree-wrap">' + svg + '</div>' + legend + toggle;
+}
+
 function renderTabs() {
   var nav = $('#listTabs');
   nav.innerHTML = '';
@@ -915,6 +1118,7 @@ function renderDetail() {
         '<div>Common: <b>' + (info.c ? 'yes' : 'radical / rare') + '</b></div>' +
       '</div>' +
     '</div>' +
+    '<div class="d-section"><h2>Radical tree</h2>' + renderRadicalTree(ch) + '</div>' +
     '<div class="d-section"><h2>Components</h2>' + compHtml + '</div>' +
     '<div class="d-section"><h2>Used in (' + used.length + ')</h2>' + usedHtml + '</div>' +
     renderDict(ch) +
@@ -931,6 +1135,24 @@ function renderDetail() {
     chip.addEventListener('click', function () {
       selectChar(chip.dataset.char);
     });
+  });
+
+  Array.prototype.forEach.call(el.querySelectorAll('.tree-node'), function (node) {
+    node.addEventListener('click', function () {
+      selectChar(node.dataset.char);
+    });
+    node.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectChar(node.dataset.char);
+      }
+    });
+  });
+
+  var treeToggle = $('#treeToggle');
+  if (treeToggle) treeToggle.addEventListener('click', function () {
+    treeFullDepth = !treeFullDepth;
+    renderDetail();
   });
 }
 

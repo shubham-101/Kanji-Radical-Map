@@ -40,7 +40,7 @@
   </tr>
   <tr>
     <td align="center"><sub><b>2,310 kanji</b> in perfect component order, color-coded by progress</sub></td>
-    <td align="center"><sub><b>Meaning, readings, words and sentences</b> — one popup per kanji</sub></td>
+    <td align="center"><sub><b>Radical tree</b> + meaning, readings, words and sentences — one popup per kanji</sub></td>
   </tr>
 </table>
 
@@ -48,7 +48,7 @@
 
 - 🧭 **Component-first learning order** — a topological sort of the radical graph of ~2,310 kanji ([algorithm](#how-it-works))
 - 📈 **Frequency-aware** — five lists (`aozora`, `news`, `twitter`, `wikipedia`, `all`) ordered by real-world usage, so you learn what you'll actually see
-- 🧩 **Interactive viewer** — click any kanji for components, usage, meaning, readings, mnemonics, related words and example sentences
+- 🧩 **Interactive viewer** — click any kanji for components, usage, meaning, readings, mnemonics, related words, example sentences, and a radial **radical tree** (components mapped around the kanji, expandable to full decomposition)
 - 🔎 **Search & filter** — find any kanji by character, by component, or by English meaning; filter by Learned / Unlearned / Ready or by JLPT level
 - 🧠 **Flashcard quiz with spaced repetition** — due cards first, then new ones; Again / Hard / Good / Easy grading with SM-2 scheduling, progress stored in your browser
 - ✅ **Progress tracking** — mark characters learned, persisted in your browser; ready-to-learn highlighting
