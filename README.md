@@ -49,10 +49,11 @@
 - 🧭 **Component-first learning order** — a topological sort of the radical graph of ~2,310 kanji ([algorithm](#how-it-works))
 - 📈 **Frequency-aware** — five lists (`aozora`, `news`, `twitter`, `wikipedia`, `all`) ordered by real-world usage, so you learn what you'll actually see
 - 🧩 **Interactive viewer** — click any kanji for components, usage, meaning, readings, mnemonics, related words and example sentences
-- 🔎 **Search & filter** — jump to any kanji by character or component; filter by Learned / Unlearned / Ready or by JLPT level
+- 🔎 **Search & filter** — find any kanji by character, by component, or by English meaning; filter by Learned / Unlearned / Ready or by JLPT level
+- 🧠 **Flashcard quiz with spaced repetition** — due cards first, then new ones; Again / Hard / Good / Easy grading with SM-2 scheduling, progress stored in your browser
 - ✅ **Progress tracking** — mark characters learned, persisted in your browser; ready-to-learn highlighting
 - 🌙 **Dark & light themes**, fully keyboard-navigable, accessible (ARIA roles, focus trapping, reduced-motion support)
-- 📦 **Self-contained** — `index.html` ships the entire app and data; works offline, no server or build needed
+- 📦 **Self-contained & installable** — `index.html` ships the entire app and data; works offline, and is a PWA you can install to your phone or desktop
 
 ## 🚀 Quick start
 
@@ -62,7 +63,17 @@
 git clone https://github.com/shubham-101/Kanji-Radical-Map.git
 ```
 
-Open **`index.html`** in your browser. That's it.
+Open **`index.html`** in your browser. That's it. It's a fully offline **PWA** — in Chrome/Edge use the install icon (or menu → “Install Kanji Radical Map”); on your phone, “Add to Home Screen” works the same way.
+
+### Practice with the quiz
+
+Click **Quiz** in the header (a badge shows your due cards). Each session takes the cards due for review first, then fills up to 20 new ones from the currently selected list.
+
+| Key | Action |
+| --- | --- |
+| `Space` / click card | Reveal the answer |
+| `1` / `2` / `3` / `4` | Grade **Again / Hard / Good / Easy** (SM-2 scheduling) |
+| `Esc` | Close the quiz |
 
 ### Rebuild the viewer
 
@@ -203,13 +214,14 @@ A `vercel.json` is included: build command `node build-viewer.js`, output `.` (t
 This project would not exist without its upstream:
 
 - **[TopoKanji][topokanji]** — the original lists, algorithm, and all data pipelines, by **Dmitry Shpika** (MIT-compatible multi-license).
-- **[JLPT/kanji-keys][kanji-keys]** — mnemonic keywords, by the same author.
+- **[kanji-keys][kanji-keys]** — mnemonic keywords, by the same author as TopoKanji.
 - **[KanjiVG][]** — kanji shapes and stroke order.
 - **[CJK Decompositions Data][cjk]** — component decomposition.
 - **KANJIDIC2 / JMdict** — meanings, readings and compound words (Electronic Dictionary Research and Development Group, **CC BY-SA 4.0**), via the pre-built releases at [scriptin/jmdict-simplified][jmdict-simplified].
 - **[Tatoeba][tatoeba]** — example sentences (**CC BY-SA 2.0 FR**), embedded in JMdict's example-sentence data (`source: "tatoeba"`).
+- **[kanji-data][kanji-data]** — JLPT levels (N5–N1) per kanji, by **David Gouveia** (**MIT License**), derived from tanos.co.uk's community JLPT lists. Used for the JLPT filter (N5 = 79, N4 = 166, N3 = 367, N2 = 367, N1 = 1,029 kanji).
 
-The JLPT filter uses KANJIDIC2's `misc.jlptLevel` — the legacy 4-level scale published by EDRDG (Level 4 = basic/easiest, roughly N5–N4; Level 1 = advanced, roughly N1). Levels are labelled with their character counts; characters without a level are grouped under "unrated".
+The JLPT filter uses the modern **N5–N1** scale above; characters not on those community lists are grouped under "unrated".
 
 See [`data/external/ATTRIBUTION.md`](data/external/ATTRIBUTION.md) for the full attribution and license notes. If you redistribute the bundled dictionary data, keep the attribution and respect CC BY-SA share-alike.
 
@@ -228,6 +240,7 @@ Note: the dictionary data bundled in `index.html` / `data/external/dictionary.js
 [topokanji]: https://github.com/scriptin/topokanji
 [kanji-keys]: https://github.com/scriptin/kanji-keys
 [jmdict-simplified]: https://github.com/scriptin/jmdict-simplified
+[kanji-data]: https://github.com/davidluzgouveia/kanji-data
 [tatoeba]: https://tatoeba.org
 [mistakes]: http://www.tofugu.com/2010/03/25/the-5-biggest-mistakes-people-make-when-learning-kanji/
 [graph]: https://en.wikipedia.org/wiki/Graph_(mathematics)

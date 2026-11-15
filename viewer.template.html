@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kanji Radical Map &mdash; TopoKanji Viewer</title>
 <meta name="description" content="Topologically ordered kanji learning lists with component/radical relationships.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="docs/icon-512.png" type="image/png">
+<link rel="apple-touch-icon" href="docs/icon-192.png">
 <script>
   /* Set the theme before first paint to avoid a flash of the wrong theme. */
   (function () {
@@ -343,6 +347,57 @@
     border-radius: 4px; padding: 0 5px; font-size: 11px; font-family: inherit;
   }
 
+  /* ---------- quiz / SRS ---------- */
+
+  .badge-dot {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0 6px;
+    font-size: 11px;
+    margin-left: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .quiz-panel { width: min(560px, 100%); }
+  .quiz-start, .quiz-summary { text-align: center; padding: 22px 14px; }
+  .quiz-start h3, .quiz-summary h3 { font-size: 20px; margin: 4px 0 12px; }
+  .quiz-hint { color: var(--muted); font-size: 13px; margin: 10px 0 18px; line-height: 1.7; }
+  .quiz-stats { display: flex; gap: 20px; justify-content: center; margin: 16px 0 22px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+  .quiz-stats b { display: block; color: var(--text); font-size: 21px; font-variant-numeric: tabular-nums; }
+  .quiz-note { color: var(--muted); font-size: 11.5px; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; line-height: 1.6; }
+
+  .quiz-progress { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+  .quiz-char {
+    font-family: var(--font-cjk);
+    font-size: 120px;
+    line-height: 1.15;
+    text-align: center;
+    margin: 14px 0 8px;
+    user-select: none;
+    cursor: pointer;
+  }
+  .quiz-reveal-hint { text-align: center; color: var(--muted); font-size: 13px; }
+
+  .quiz-answer { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
+  .quiz-meaning { font-size: 19px; margin: 0 0 6px; }
+  .quiz-readings { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .quiz-example-jpn { font-family: var(--font-cjk); font-size: 16px; }
+  .quiz-example-eng { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+
+  .quiz-answers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0 4px; }
+  .grade-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 4px; cursor: pointer; font: inherit; color: var(--text);
+    display: flex; flex-direction: column; gap: 3px; align-items: center;
+  }
+  .grade-btn b { font-size: 13.5px; }
+  .grade-btn span { font-size: 10.5px; color: var(--muted); }
+  .grade-btn:hover { border-color: var(--accent); }
+  .grade-btn.again b { color: #ff8a8a; }
+  .grade-btn.hard b { color: var(--muted); }
+  .grade-btn.easy b { color: var(--learned); }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       transition-duration: .001ms !important;
@@ -371,8 +426,8 @@
     <div class="controls">
       <nav class="tabs" id="listTabs" role="tablist" aria-label="Frequency list"></nav>
       <div class="spacer"></div>
-      <label class="sr-only" for="search">Search by kanji or component</label>
-      <input type="search" id="search" placeholder="Search kanji or component&hellip;" autocomplete="off">
+      <label class="sr-only" for="search">Search by kanji, component or English meaning</label>
+      <input type="search" id="search" placeholder="Search kanji, component, or English meaning&hellip;" autocomplete="off">
       <label class="sr-only" for="filter">Filter kanji</label>
       <select id="filter">
         <option value="all">All</option>
@@ -380,16 +435,18 @@
         <option value="learned">Learned</option>
         <option value="ready">Ready to learn</option>
       </select>
-      <label class="sr-only" for="jlptFilter">Filter by JLPT level (KANJIDIC2)</label>
-      <select id="jlptFilter" title="JLPT levels from KANJIDIC2: 4 = basic (covers most N5–N4), 1 = advanced (N1)">
+      <label class="sr-only" for="jlptFilter">Filter by JLPT level</label>
+      <select id="jlptFilter" title="JLPT levels (N5 = easiest, community syllabus from davidluzgouveia/kanji-data)">
         <option value="all">JLPT: all levels</option>
-        <option value="4">JLPT Level 4 — Basic (~100)</option>
-        <option value="3">JLPT Level 3 (~180)</option>
-        <option value="2">JLPT Level 2 (~740)</option>
-        <option value="1">JLPT Level 1 — Advanced (~1,000)</option>
-        <option value="none">JLPT: unrated</option>
+        <option value="5">N5 — Beginner (79)</option>
+        <option value="4">N4 (166)</option>
+        <option value="3">N3 (367)</option>
+        <option value="2">N2 (367)</option>
+        <option value="1">N1 — Advanced (1,029)</option>
+        <option value="none">JLPT: unrated (302)</option>
       </select>
       <button class="link-btn" id="resetLearned" title="Clear all learned marks">Reset progress</button>
+      <button class="link-btn" id="quizButton" title="Flashcard quiz with spaced repetition">Quiz</button>
     </div>
     <div class="progress"><i id="progressBar"></i></div>
     <div class="progress-label" id="progressLabel"></div>
@@ -416,6 +473,19 @@
         </button>
       </div>
       <div class="d-body" id="detailBody" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="quiz" role="dialog" aria-modal="true" aria-labelledby="quizTitle" hidden>
+    <div class="modal-backdrop" id="quizBackdrop"></div>
+    <div class="modal-panel quiz-panel" id="quizPanel" tabindex="-1">
+      <div class="d-bar">
+        <span class="d-bar-title" id="quizTitle">Quiz</span>
+        <button class="icon-btn" id="quizClose" aria-label="Close quiz" title="Close (Esc)">
+          <span aria-hidden="true">✕</span>
+        </button>
+      </div>
+      <div class="d-body" id="quizBody"></div>
     </div>
   </div>
 
@@ -557,7 +627,8 @@ function renderDict(ch) {
   html += '<div class="dict-foot">Meanings &amp; readings: KANJIDIC2 / JMdict &middot; ' +
     '<a href="https://github.com/scriptin/jmdict-simplified" target="_blank" rel="noopener">EDRDG / jmdict-simplified</a> (CC BY-SA 4.0)<br>' +
     'Example sentences: <a href="https://tatoeba.org" target="_blank" rel="noopener">Tatoeba</a> (CC BY-SA 2.0 FR)<br>' +
-    'Mnemonic keywords: <a href="https://github.com/scriptin/kanji-keys" target="_blank" rel="noopener">kanji-keys</a></div>';
+    'Mnemonic keywords: <a href="https://github.com/scriptin/kanji-keys" target="_blank" rel="noopener">kanji-keys</a> &middot; ' +
+    'JLPT levels: <a href="https://github.com/davidluzgouveia/kanji-data" target="_blank" rel="noopener">kanji-data</a> (MIT)</div>';
 
   return html;
 }
@@ -608,6 +679,22 @@ function renderProgress() {
   $('#progressLabel').textContent =
     done + ' / ' + total + ' learned in "' + state.list + '" (' +
     (total ? (done / total) * 100 : 0).toFixed(1) + '%)';
+  updateQuizBadge();
+}
+
+function matchesQuery(ch, q) {
+  if (!q) return true;
+  q = q.toLowerCase();
+  if (ch === q || componentsOf(ch).indexOf(q) !== -1) return true;
+  var d = DICT[ch];
+  if (d) {
+    var hay = ((d.m || []).join(' ') + ' ' + (d.w || []).map(function (w) { return w[2]; }).join(' ')).toLowerCase();
+    var words = hay.split(/[^a-z0-9]+/);
+    for (var i = 0; i < words.length; i++) {
+      if (words[i] && words[i].indexOf(q) === 0) return true; // word-prefix match
+    }
+  }
+  return false;
 }
 
 function filteredChars() {
@@ -616,13 +703,13 @@ function filteredChars() {
   var out = [];
   for (var i = 0; i < LISTS[state.list].length; i++) {
     var ch = LISTS[state.list][i];
-    if (q && !(ch === q || componentsOf(ch).indexOf(q) !== -1)) continue;
+    if (q && !matchesQuery(ch, q)) continue;
     if (state.filter === 'learned' && !learned.has(ch)) continue;
     if (state.filter === 'unlearned' && learned.has(ch)) continue;
     if (state.filter === 'ready' && !isReady(ch)) continue;
     if (jlpt !== 'all') {
       var d = DICT[ch];
-      var lvl = d && typeof d.jlpt === 'number' ? d.jlpt : null;
+      var lvl = d && typeof d.jlpt_n === 'number' ? d.jlpt_n : null;
       if (jlpt === 'none') { if (lvl !== null) continue; }
       else if (lvl !== +jlpt) continue;
     }
@@ -737,11 +824,24 @@ function setInert(on) {
   });
 }
 
-function focusTrapTargets() {
+function focusTrapTargets(container) {
   return Array.prototype.filter.call(
-    $('#modal').querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+    (container || $('#modal')).querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
     function (el) { return !el.disabled && el.offsetParent !== null; }
   );
+}
+
+function trapTab(container, e) {
+  var items = focusTrapTargets(container);
+  if (!items.length) { e.preventDefault(); return; }
+  var first = items[0], last = items[items.length - 1];
+  var active = document.activeElement;
+  var panel = container.querySelector('[tabindex="-1"]');
+  if (e.shiftKey) {
+    if (active === first || active === panel) { e.preventDefault(); last.focus(); }
+  } else {
+    if (active === last || active === panel) { e.preventDefault(); first.focus(); }
+  }
 }
 
 function renderDetail() {
@@ -874,6 +974,209 @@ function gridColumns() {
   return Math.max(1, widths.length);
 }
 
+/* ---------- quiz / spaced repetition ---------- */
+
+var SRS_KEY = 'kanji-radical-map.srs.v1';
+var NEW_PER_SESSION = 20;
+
+var srs = loadSrs();
+
+function loadSrs() {
+  try { return JSON.parse(localStorage.getItem(SRS_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveSrs() {
+  try { localStorage.setItem(SRS_KEY, JSON.stringify(srs)); } catch (e) {}
+}
+
+function srsPool() { return LISTS[state.list]; }
+
+function countDue(chars) {
+  var now = Date.now(), n = 0;
+  for (var i = 0; i < chars.length; i++) {
+    var s = srs[chars[i]];
+    if (s && typeof s.due === 'number' && s.due <= now) n++;
+  }
+  return n;
+}
+function countNew(chars) {
+  var n = 0;
+  for (var i = 0; i < chars.length; i++) if (!srs[chars[i]]) n++;
+  return n;
+}
+function countStudied(chars) {
+  var n = 0;
+  for (var i = 0; i < chars.length; i++) if (srs[chars[i]]) n++;
+  return n;
+}
+function updateQuizBadge() {
+  var due = countDue(srsPool());
+  var b = $('#quizButton');
+  if (b) b.innerHTML = 'Quiz' + (due > 0 ? ' <span class="badge-dot">' + due + '</span>' : '');
+}
+
+var quiz = { queue: [], idx: 0, reviewed: 0, correct: 0, again: 0, revealed: false, stage: 'start' };
+var lastQuizFocus = null;
+
+function openQuiz() {
+  var m = $('#quiz');
+  if (!m.hidden) return;
+  lastQuizFocus = document.activeElement;
+  m.hidden = false;
+  setInert(true);
+  quiz.stage = 'start';
+  quiz.revealed = false;
+  renderQuizStart();
+  $('#quizPanel').focus();
+}
+function closeQuiz() {
+  var m = $('#quiz');
+  if (m.hidden) return;
+  m.hidden = true;
+  setInert(false);
+  if (lastQuizFocus && document.contains(lastQuizFocus)) lastQuizFocus.focus();
+}
+
+function buildQueue() {
+  var chars = srsPool(), now = Date.now();
+  var due = [], fresh = [];
+  chars.forEach(function (ch) {
+    var s = srs[ch];
+    if (s && typeof s.due === 'number' && s.due <= now) due.push({ ch: ch, due: s.due });
+    else if (!s) fresh.push(ch);
+  });
+  due.sort(function (a, b) { return a.due - b.due; });
+  var q = due.map(function (d) { return d.ch; });
+  for (var i = 0; i < fresh.length && i < NEW_PER_SESSION; i++) q.push(fresh[i]);
+  return q;
+}
+
+function renderQuizStart() {
+  var chars = srsPool();
+  var due = countDue(chars), fresh = Math.min(countNew(chars), NEW_PER_SESSION), studied = countStudied(chars);
+  var canStudy = due > 0 || fresh > 0;
+  $('#quizBody').innerHTML =
+    '<div class="quiz-start">' +
+      '<h3>Practice &middot; ' + escapeHtml(state.list) + '</h3>' +
+      '<p class="quiz-hint">Spaced repetition of the kanji in this list.<br>' +
+        'Space or click the card to reveal the answer.<br><kbd>1</kbd> Again &nbsp;<kbd>2</kbd> Hard &nbsp;<kbd>3</kbd> Good &nbsp;<kbd>4</kbd> Easy</p>' +
+      '<div class="quiz-stats">' +
+        '<span><b>' + due + '</b>due for review</span>' +
+        '<span><b>' + fresh + '</b>new cards</span>' +
+        '<span><b>' + studied + '</b>total studied</span>' +
+      '</div>' +
+      (canStudy
+        ? '<button class="btn" id="quizStartBtn">Start quiz</button>'
+        : '<p class="quiz-hint">🎉 All caught up in this list — come back later!</p>') +
+      '<button class="btn ghost" id="quizResetSrsBtn" style="margin-top:10px">Reset SRS progress</button>' +
+    '</div>';
+  var startBtn = $('#quizStartBtn');
+  if (startBtn) startBtn.addEventListener('click', startQuiz);
+  $('#quizResetSrsBtn').addEventListener('click', function () {
+    if (confirm('Clear all SRS progress (due dates and ease)?')) {
+      srs = {};
+      saveSrs();
+      renderQuizStart();
+      updateQuizBadge();
+    }
+  });
+}
+
+function gradeButtonHtml(q, label, key, cls) {
+  return '<button class="grade-btn ' + cls + '" data-q="' + q + '"><b>' + label + '</b><span>' + key + '</span></button>';
+}
+
+function renderCard() {
+  var ch = quiz.queue[quiz.idx];
+  var d = DICT[ch] || {};
+  var html = '<div class="quiz-progress"><span>Card ' + (quiz.idx + 1) + ' of ' + quiz.queue.length + '</span>' +
+    '<span>' + (quiz.reviewed ? Math.round(100 * quiz.correct / quiz.reviewed) : 0) + '% correct</span></div>';
+  html += '<div class="quiz-char" id="quizFlip" role="button" tabindex="0" aria-label="Reveal answer">' + ch + '</div>';
+  if (!quiz.revealed) {
+    html += '<p class="quiz-reveal-hint">What does this kanji mean? (Space / click to reveal)</p>';
+  } else {
+    var meanings = (d.m || []).slice(0, 4).join(', ');
+    html += '<div class="quiz-answer">' +
+      '<p class="quiz-meaning">' + escapeHtml(meanings || '—') + '</p>' +
+      '<div class="quiz-readings">On: ' + escapeHtml((d.on || []).join('、') || '—') + ' &nbsp;&middot;&nbsp; Kun: ' + escapeHtml((d.kun || []).join('、') || '—') + '</div>' +
+      ((d.x && d.x[0])
+        ? '<div class="quiz-example-jpn">' + escapeHtml(d.x[0].jpn) + '</div><div class="quiz-example-eng">' + escapeHtml(d.x[0].eng) + '</div>'
+        : '') +
+    '</div>' +
+    '<div class="quiz-answers">' +
+      gradeButtonHtml(0, 'Again', '1', 'again') +
+      gradeButtonHtml(2, 'Hard', '2', 'hard') +
+      gradeButtonHtml(3, 'Good', '3', 'good') +
+      gradeButtonHtml(4, 'Easy', '4', 'easy') +
+    '</div>';
+  }
+  $('#quizBody').innerHTML = html;
+  var flip = $('#quizFlip');
+  if (flip) flip.addEventListener('click', revealAnswer);
+  Array.prototype.forEach.call($('#quizBody').querySelectorAll('.grade-btn'), function (btn) {
+    btn.addEventListener('click', function () { grade(+btn.dataset.q); });
+  });
+}
+
+function revealAnswer() {
+  if (quiz.stage !== 'card' || quiz.revealed) return;
+  quiz.revealed = true;
+  renderCard();
+}
+
+function grade(q) {
+  if (quiz.stage !== 'card' || !quiz.revealed) return;
+  var ch = quiz.queue[quiz.idx];
+  var now = Date.now();
+  var s = srs[ch] || { ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0 };
+  if (q === 0) {
+    s.reps = 0;
+    s.lapses = (s.lapses || 0) + 1;
+    s.interval = 1;
+    s.due = now + 60 * 1000; // re-appears after 1 minute
+    quiz.again++;
+    quiz.queue.push(ch);
+  } else {
+    s.reps = (s.reps || 0) + 1;
+    if (s.reps === 1) s.interval = 1;
+    else if (s.reps === 2) s.interval = 6;
+    else s.interval = Math.max(1, Math.round((s.interval || 1) * (s.ease || 2.5) * (q === 2 ? 0.8 : q === 4 ? 1.3 : 1)));
+    s.due = now + s.interval * 86400000;
+    quiz.correct++;
+  }
+  var delta = 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02);
+  s.ease = Math.max(1.3, (s.ease || 2.5) + delta);
+  srs[ch] = s;
+  saveSrs();
+  quiz.reviewed++;
+  quiz.idx++;
+  quiz.revealed = false;
+  if (quiz.idx >= quiz.queue.length) renderSummary();
+  else renderCard();
+}
+
+function renderSummary() {
+  quiz.stage = 'summary';
+  var pct = quiz.reviewed ? Math.round(100 * quiz.correct / quiz.reviewed) : 0;
+  $('#quizBody').innerHTML =
+    '<div class="quiz-summary">' +
+      '<h3>Session complete 🎉</h3>' +
+      '<div class="quiz-stats">' +
+        '<span><b>' + quiz.reviewed + '</b>reviews</span>' +
+        '<span><b>' + pct + '%</b>correct</span>' +
+        '<span><b>' + quiz.again + '</b>repeat</span>' +
+      '</div>' +
+      '<button class="btn" id="quizAgainBtn">Another round</button>' +
+      '<button class="btn ghost" id="quizDoneBtn" style="margin-top:10px">Close</button>' +
+    '</div>';
+  $('#quizAgainBtn').addEventListener('click', startQuiz);
+  $('#quizDoneBtn').addEventListener('click', closeQuiz);
+}
+
+function startQuiz() {
+  quiz = { queue: buildQueue(), idx: 0, reviewed: 0, correct: 0, again: 0, revealed: false, stage: 'card' };
+  renderCard();
+}
+
 /* ---------- events ---------- */
 
 $('#grid').addEventListener('click', function (e) {
@@ -914,30 +1217,40 @@ $('#themeToggle').addEventListener('click', function () {
   applyTheme(currentTheme() === 'light' ? 'dark' : 'light');
 });
 
+$('#quizButton').addEventListener('click', openQuiz);
+$('#quizClose').addEventListener('click', closeQuiz);
+$('#quizBackdrop').addEventListener('click', closeQuiz);
+
 $('#modalClose').addEventListener('click', closeModal);
 $('#modalBackdrop').addEventListener('click', closeModal);
 
 document.addEventListener('keydown', function (e) {
-  var m = $('#modal');
+  var pressed = e.key;
 
-  if (e.key === 'Escape' && !m.hidden) {
-    e.preventDefault();
-    closeModal();
-    return;
+  if (pressed === 'Escape') {
+    if (!$('#quiz').hidden) { e.preventDefault(); closeQuiz(); return; }
+    if (!$('#modal').hidden) { e.preventDefault(); closeModal(); return; }
   }
 
-  if (e.key === 'Tab' && !m.hidden) {
-    var items = focusTrapTargets();
-    if (items.length) {
-      var panel = $('#modalPanel');
-      var first = items[0];
-      var last = items[items.length - 1];
-      var active = document.activeElement;
-      if (e.shiftKey) {
-        if (active === first || active === panel) { e.preventDefault(); last.focus(); }
-      } else {
-        if (active === last || active === panel) { e.preventDefault(); first.focus(); }
-      }
+  if (pressed === 'Tab') {
+    if (!$('#quiz').hidden) { trapTab($('#quiz'), e); return; }
+    if (!$('#modal').hidden) { trapTab($('#modal'), e); return; }
+  }
+
+  // Quiz-specific keys: swallow everything else while the quiz is open.
+  if (!$('#quiz').hidden) {
+    if (pressed === ' ' || pressed === 'Enter') {
+      var qTag = (e.target.tagName || '').toLowerCase();
+      if (qTag === 'input' || qTag === 'select' || qTag === 'textarea' || qTag === 'button') return;
+      e.preventDefault();
+      revealAnswer();
+      return;
+    }
+    if (quiz.stage === 'card' && quiz.revealed) {
+      if (pressed === '1') { e.preventDefault(); grade(0); return; }
+      if (pressed === '2') { e.preventDefault(); grade(2); return; }
+      if (pressed === '3') { e.preventDefault(); grade(3); return; }
+      if (pressed === '4') { e.preventDefault(); grade(4); return; }
     }
     return;
   }
@@ -980,6 +1293,9 @@ document.addEventListener('keydown', function (e) {
 $('#totalChars').textContent = Object.keys(KANJI).length;
 applyTheme(currentTheme());
 renderAll();
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function () { /* requires localhost/https; file:// is fine without it */ });
+}
 </script>
 </body>
 </html>

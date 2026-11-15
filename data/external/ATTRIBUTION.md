@@ -14,6 +14,9 @@ data from the following sources, all free and redistributable with attribution:
 - **kanji-keys** — mnemonic keywords by the TopoKanji author (Dmitry Shpika),
   multi-licensed: Apache-2.0+, CC-BY-4.0+, EPL-1.0+, LGPL-3.0+, MIT.
   Source: <https://github.com/scriptin/kanji-keys>.
+- **kanji-data** — JLPT N5–N1 levels per kanji, by David Gouveia, **MIT License**.
+  Source: <https://github.com/davidluzgouveia/kanji-data> (JLPT levels were derived from
+  tanos.co.uk's community JLPT resources).
 
 The raw data files (KANJIDIC2/JMdict JSON, ~250 MB) are git-ignored and are
 re-downloaded on demand by:

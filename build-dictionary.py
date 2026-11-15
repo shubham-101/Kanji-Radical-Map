@@ -32,6 +32,8 @@ DOWNLOADS = {
     'jmdict-eng-3.6.2.json': RELEASE + 'jmdict-eng-3.6.2%2B20261109214828.json.tgz',
     'jmdict-examples-eng-3.6.2.json': RELEASE + 'jmdict-examples-eng-3.6.2%2B20261109214828.json.tgz',
     'kanji-keys.json': 'https://raw.githubusercontent.com/scriptin/kanji-keys/master/kanji-keys.json',
+    # jlpt_new levels (N5..N1), MIT-licensed community JLPT list (tanos.co.uk)
+    'kanji-data.json': 'https://raw.githubusercontent.com/davidluzgouveia/kanji-data/master/kanji.json',
 }
 EX = {
     'kanjidic2-en-3.6.2.json': os.path.join(EXTERNAL, 'kanjidic2-en-3.6.2.json'),
@@ -233,6 +235,26 @@ def load_keys():
         return json.load(f)
 
 
+# ---------- JLPT (N5..N1) ----------
+
+def load_jlpt_n_levels(kanji_set):
+    """char -> int jlpt_new (5=N5 .. 1=N1), from davidluzgouveia/kanji-data (MIT)."""
+    path = os.path.join(EXTERNAL, 'kanji-data.json')
+    if not os.path.exists(path):
+        print('  kanji-data.json not found; jlpt_n will be null', flush=True)
+        return {}
+    with open(path, encoding='utf-8') as f:
+        data = json.load(f)
+    out = {}
+    for ch, rec in data.items():
+        lvl = rec.get('jlpt_new')
+        if isinstance(lvl, int) and 1 <= lvl <= 5:
+            out[ch] = lvl
+    covered = sum(1 for c in kanji_set if c in out)
+    print(f'  jlpt_n levels: {covered} of {len(kanji_set)} characters (unrated: {len(kanji_set) - covered})', flush=True)
+    return out
+
+
 # ---------- main ----------
 
 def main():
@@ -240,7 +262,6 @@ def main():
     print('Checking downloads ...', flush=True)
     ensure_external_files()
 
-    chars = load_kanji_chars()
     kanji_set = set(chars)
     print(f'{len(chars)} kanji in data/kanji.json', flush=True)
 
@@ -248,6 +269,7 @@ def main():
     words = build_word_index(kanji_set)
     examples = build_examples(kanji_set)
     keys = load_keys()
+    jlpt_n = load_jlpt_n_levels(kanji_set)
 
     print('Assembling dictionary.json ...', flush=True)
     out = {'kanji': {}}
@@ -256,6 +278,7 @@ def main():
         entry = dict(info.get(c) or {})
         entry['key'] = k.get('uniq')
         entry['keys'] = k.get('keys', [])
+        entry['jlpt_n'] = jlpt_n.get(c)
         entry['w'] = words.get(c, [])
         entry['x'] = examples.get(c, [])
         out['kanji'][c] = entry
